@@ -4,10 +4,14 @@
     <HeaderComponent
         :isDarkMode="isDarkMode"
         @toggle-theme="toggleTheme"
+        @toggle-sidebar="toggleMobileSidebar"
     />
 
     <!-- سایدبار جداگانه -->
-    <SidebarComponent />
+    <SidebarComponent
+        :isMobileOpen="isMobileSidebarOpen"
+        @close-mobile-sidebar="closeMobileSidebar"
+    />
 
     <!-- محتوای اصلی -->
     <main class="main-content">
@@ -16,7 +20,12 @@
       </div>
     </main>
 
-
+    <!-- Overlay برای موبایل -->
+    <div
+        v-if="isMobileSidebarOpen"
+        class="mobile-sidebar-overlay"
+        @click="closeMobileSidebar"
+    ></div>
   </div>
 </template>
 
@@ -32,7 +41,8 @@ export default {
   },
   data() {
     return {
-      isDarkMode: localStorage.getItem("cafeHojre-theme") === "dark"
+      isDarkMode: localStorage.getItem("cafeHojre-theme") === "dark",
+      isMobileSidebarOpen: false
     }
   },
   computed: {
@@ -44,6 +54,12 @@ export default {
     toggleTheme() {
       this.isDarkMode = !this.isDarkMode;
       localStorage.setItem("cafeHojre-theme", this.isDarkMode ? "dark" : "light");
+    },
+    toggleMobileSidebar() {
+      this.isMobileSidebarOpen = !this.isMobileSidebarOpen;
+    },
+    closeMobileSidebar() {
+      this.isMobileSidebarOpen = false;
     }
   },
   mounted() {
@@ -60,44 +76,45 @@ export default {
 
 <style>
 :root {
-  --primary-color: #8b4513;
-  --primary-light: #a0522d;
-  --primary-dark: #5d2906;
-  --secondary-color: #d4a574;
-  --accent-color: #c19a6b;
+  /* رنگ‌های ملایم‌تر برای قهوه‌ای */
+  --primary-color: #a17c5a;
+  --primary-light: #b89a7a;
+  --primary-dark: #8a5e3a;
+  --secondary-color: #d4b896;
+  --accent-color: #c8a87c;
   --text-light: #f9f5f0;
-  --text-dark: #2c1810;
-  --bg-light: #f9f5f0;
-  --bg-dark: #1a1a1a;
+  --text-dark: #3a2c1c;
+  --bg-light: #f8f4ef;
+  --bg-dark: #1e1a16;
   --card-light: #ffffff;
-  --card-dark: #2d2d2d;
+  --card-dark: #2d261f;
   --border-light: #e0d6cc;
-  --border-dark: #444444;
+  --border-dark: #4a4238;
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   --radius: 12px;
   --transition: all 0.3s ease;
 }
 
 [data-theme="dark"] {
-  --primary-color: #a0522d;
-  --primary-light: #8b4513;
-  --primary-dark: #5d2906;
-  --secondary-color: #c19a6b;
-  --accent-color: #d4a574;
+  --primary-color: #b89a7a;
+  --primary-light: #a17c5a;
+  --primary-dark: #8a5e3a;
+  --secondary-color: #c8a87c;
+  --accent-color: #d4b896;
   --text-color: #f9f5f0;
-  --bg-color: #1a1a1a;
-  --card-bg: #2d2d2d;
-  --border-color: #444444;
+  --bg-color: #1e1a16;
+  --card-bg: #2d261f;
+  --border-color: #4a4238;
 }
 
 [data-theme="light"] {
-  --primary-color: #8b4513;
-  --primary-light: #a0522d;
-  --primary-dark: #5d2906;
-  --secondary-color: #d4a574;
-  --accent-color: #c19a6b;
-  --text-color: #2c1810;
-  --bg-color: #f9f5f0;
+  --primary-color: #a17c5a;
+  --primary-light: #b89a7a;
+  --primary-dark: #8a5e3a;
+  --secondary-color: #d4b896;
+  --accent-color: #c8a87c;
+  --text-color: #3a2c1c;
+  --bg-color: #f8f4ef;
   --card-bg: #ffffff;
   --border-color: #e0d6cc;
 }
@@ -113,14 +130,14 @@ export default {
   min-height: 100vh;
   display: grid;
   grid-template-columns: 250px 1fr;
-  grid-template-rows: auto 1fr auto;
+  grid-template-rows: auto 1fr;
   grid-template-areas:
     "header header"
-    "sidebar main"
-    "sidebar footer";
+    "sidebar main";
   background-color: var(--bg-color);
   color: var(--text-color);
   font-family: 'Vazir', 'IRANSans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  position: relative;
 }
 
 /* استایل‌های مربوط به تم */
@@ -139,7 +156,7 @@ export default {
   grid-area: main;
   padding: 30px;
   overflow-y: auto;
-  max-height: calc(100vh - 140px);
+  //max-height: calc(100vh - 80px);
 }
 
 .content-wrapper {
@@ -152,15 +169,16 @@ export default {
   border: 1px solid var(--border-color);
 }
 
-/* استایل فوتر */
-.main-footer {
-  grid-area: footer;
-  text-align: center;
-  padding: 20px;
-  background-color: var(--primary-dark);
-  color: var(--text-light);
-  font-size: 0.9rem;
-  border-top: 1px solid var(--border-color);
+/* Overlay برای موبایل */
+.mobile-sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  display: none;
 }
 
 /* رسپانسیو */
@@ -169,17 +187,20 @@ export default {
     grid-template-columns: 1fr;
     grid-template-areas:
       "header"
-      "main"
-      "footer";
+      "main";
   }
 
   .main-content {
-    max-height: calc(100vh - 180px);
+    max-height: calc(100vh - 80px);
     padding: 20px;
   }
 
   .content-wrapper {
     padding: 20px;
+  }
+
+  .mobile-sidebar-overlay {
+    display: block;
   }
 }
 

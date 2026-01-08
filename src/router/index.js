@@ -8,6 +8,8 @@ import AuthLayout from "@/layouts/AuthLayout.vue";
 import LoginPage from "../view/Login.vue";
 import DashboardPage from "../view/Dashboard.vue";
 import {useAuthStore} from "@/store/auth.js";
+import ResturantList from "@/view/ResturantList.vue";
+import OrderList from "@/view/ResturantOrderList.vue";
 
 const routes = [
     {
@@ -26,6 +28,8 @@ const routes = [
         component: MainLayout,
         children: [
             { path: "", component: DashboardPage },
+            { path: "restaurant_list", component: ResturantList },
+            { path: "restaurant/order-list/:restaurantId", component: OrderList, props: true },
 
         ]
     }
