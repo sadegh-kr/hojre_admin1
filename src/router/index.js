@@ -10,6 +10,7 @@ import DashboardPage from "../view/Dashboard.vue";
 import {useAuthStore} from "@/store/auth.js";
 import ResturantList from "@/view/ResturantList.vue";
 import OrderList from "@/view/ResturantOrderList.vue";
+import UserList from "@/view/UserList.vue";
 import NotFound from "@/view/NotFound.vue";
 
 const routes = [
@@ -31,6 +32,7 @@ const routes = [
             { path: "", component: DashboardPage },
             { path: "restaurant_list", component: ResturantList },
             { path: "restaurant/order-list/:restaurantId", component: OrderList, props: true },
+            { path: "user-list", component: UserList, props: true },
 
         ]
     },

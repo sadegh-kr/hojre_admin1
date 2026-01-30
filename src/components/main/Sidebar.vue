@@ -116,7 +116,7 @@ export default {
       mainMenu: [
         { id: 1, title: "داشبورد", path: "/dashboard", icon: "icon-dashboard", badge: "" },
         { id: 2, title: "لیست رستوان ها", path: "/dashboard/restaurant_list", icon: "icon-menu", notification: true },
-        { id: 3, title: "مشتریان", path: "/dashboard/user_list", icon: "icon-menu", badge: "جدید", hasSubmenu: true },
+        { id: 3, title: "مشتریان", path: "/dashboard/user-list", icon: "icon-menu", badge: "جدید", hasSubmenu: true },
         // { id: 4, title: "سفارش‌ها", path: "/dashboard/orders", icon: "icon-orders", badge: "۵" },
         // { id: 5, title: "مشتریان", path: "/dashboard/customers", icon: "icon-users", badge: "۳" },
         // { id: 6, title: "گزارش‌ها", path: "/dashboard/reports", icon: "icon-chart", hasSubmenu: true },
