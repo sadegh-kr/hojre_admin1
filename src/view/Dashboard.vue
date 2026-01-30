@@ -1,11 +1,7 @@
-<script setup>
-
-</script>
+<script setup></script>
 
 <template>
-sdfsdf
+  <div className="bg-red-400">سلام</div>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>

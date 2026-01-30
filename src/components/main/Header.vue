@@ -1,23 +1,12 @@
 <template>
-  <header class="main-header" :class="{'header-dark': isDarkMode}">
+  <header class="main-header">
     <div class="header-container">
       <!-- لوگو و نام برند -->
-      <div class="brand-section">
+      <div class="brand-section ">
         <div class="logo-container">
           <!-- لوگوی مینیمال و شیک -->
           <div class="logo-symbol">
-            <svg class="logo-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-              <!-- شکل قهوه‌گیر سنتی ایرانی -->
-              <path d="M50,20 C60,15 75,18 80,30 C85,42 80,60 70,70 C60,80 40,80 30,70 C20,60 15,42 20,30 C25,18 40,15 50,20 Z"
-                    :fill="isDarkMode ? '#c19a6b' : '#8b4513'"/>
-              <!-- بخار قهوه -->
-              <path d="M50,10 Q55,5 60,10 Q65,15 60,20 Q55,25 50,20 Q45,15 50,10 Z"
-                    :fill="isDarkMode ? '#f9f5f0' : '#fff'"/>
-              <path d="M40,8 Q45,3 50,8 Q55,13 50,18 Q45,23 40,18 Q35,13 40,8 Z"
-                    :fill="isDarkMode ? '#f9f5f0' : '#fff'"/>
-              <path d="M60,8 Q65,3 70,8 Q75,13 70,18 Q65,23 60,18 Q55,13 60,8 Z"
-                    :fill="isDarkMode ? '#f9f5f0' : '#fff'"/>
-            </svg>
+            <img src="../../assets/logo.png">
           </div>
 
           <div class="logo-text">
@@ -28,7 +17,7 @@
 
         <div class="slogan-line">
           <span class="slogan-icon">•</span>
-          <span class="slogan-text">طعم‌های اصیل، لحظه‌های به یادماندنی</span>
+          <span class="slogan-text">طعم‌های اصیل، لحظه‌های به یادماندی</span>
           <span class="slogan-icon">•</span>
         </div>
       </div>
@@ -94,11 +83,11 @@
             </div>
           </div>
 
-          <!-- دکمه تغییر تم -->
-          <button class="theme-toggle" @click="$emit('toggle-theme')"
-                  :title="isDarkMode ? 'تغییر به حالت روشن' : 'تغییر به حالت تاریک'">
-            <div class="theme-toggle-inner">
-              <i class="theme-icon" :class="isDarkMode ? 'icon-sun' : 'icon-moon'"></i>
+          <!-- دکمه خروج -->
+          <button class="logout-btn" @click="handleLogout"
+                  title="خروج از حساب کاربری">
+            <div class="logout-btn-inner">
+              <i class="logout-icon icon-logout"></i>
             </div>
           </button>
 
@@ -108,9 +97,6 @@
               <i class="notification-icon icon-bell"></i>
               <span class="notification-badge">۳</span>
             </button>
-
-            <!-- پروفایل کاربر -->
-
           </div>
         </div>
       </div>
@@ -118,22 +104,42 @@
   </header>
 </template>
 
-<script>
-export default {
-  name: "HeaderComponent",
-  props: {
-    isDarkMode: {
-      type: Boolean,
-      default: false
-    }
-  },
-  data() {
-    return {
-      isSearchFocused: false,
-      isMobileMenuActive: false
-    }
-  },
-  emits: ['toggle-theme', 'toggle-sidebar']
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/store/auth'
+
+// برای حالت reactive
+const isSearchFocused = ref(false)
+const isMobileMenuActive = ref(false)
+
+// استفاده از router و store
+const router = useRouter()
+const authStore = useAuthStore()
+
+const handleLogout = () => {
+  try {
+    console.log('در حال خروج از حساب کاربری...')
+    
+    // فراخوانی action لاگ‌اوت
+    authStore.logout()
+    
+    // هدایت به صفحه لاگین
+    router.push('/login')
+    
+    console.log('خروج موفقیت‌آمیز بود')
+  } catch (error) {
+    console.error('خطا در عملیات خروج:', error)
+    // می‌توانید پیام خطا به کاربر نمایش دهید
+  }
+}
+
+// اگر نیاز به emit دارید
+const emit = defineEmits(['toggle-sidebar'])
+
+// برای toggle کردن منو
+const toggleMobileMenu = () => {
+  isMobileMenuActive.value = !isMobileMenuActive.value
 }
 </script>
 
@@ -177,8 +183,8 @@ export default {
 }
 
 .logo-symbol {
-  width: 45px;
-  height: 45px;
+  width: 30px;
+  height: 30px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -403,8 +409,8 @@ export default {
   color: var(--text-color);
 }
 
-/* تغییر تم */
-.theme-toggle {
+/* دکمه خروج */
+.logout-btn {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 50%;
@@ -417,15 +423,19 @@ export default {
   transition: var(--transition);
 }
 
-.theme-toggle:hover {
-  background: var(--hover-bg);
-  border-color: var(--primary-color);
-  transform: rotate(15deg);
+.logout-btn:hover {
+  background: rgba(255, 71, 87, 0.1);
+  border-color: #ff4757;
+  transform: translateY(-2px);
 }
 
-.theme-icon {
+.logout-icon {
   font-size: 1.2rem;
   color: var(--text-color);
+}
+
+.logout-btn:hover .logout-icon {
+  color: #ff4757;
 }
 
 /* اطلاع‌رسانی */
@@ -474,98 +484,6 @@ export default {
   justify-content: center;
   font-weight: 600;
   border: 2px solid var(--header-bg);
-}
-
-/* پروفایل کاربر */
-.user-profile-dropdown {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 50px;
-  padding: 4px 4px 4px 15px;
-  cursor: pointer;
-  transition: var(--transition);
-  min-width: 200px;
-}
-
-.user-profile-dropdown:hover {
-  background: var(--hover-bg);
-  border-color: var(--primary-color);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.user-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 2px solid var(--secondary-color);
-}
-
-.user-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.user-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.user-main {
-  display: flex;
-  flex-direction: column;
-}
-
-.user-name {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-color);
-  line-height: 1.2;
-}
-
-.user-role {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  margin-top: 2px;
-}
-
-.user-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 3px;
-}
-
-.status-online {
-  font-size: 0.7rem;
-  color: #2ecc71;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.user-id {
-  font-size: 0.7rem;
-  color: var(--text-secondary);
-}
-
-.profile-dropdown-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 8px;
-  transition: var(--transition);
-}
-
-.profile-dropdown-btn:hover {
-  color: var(--text-color);
 }
 
 /* دکمه همبرگر موبایل */
@@ -628,13 +546,6 @@ export default {
   --hover-bg: rgba(139, 69, 19, 0.05);
   --border-light: rgba(139, 69, 19, 0.1);
   --text-secondary: rgba(60, 60, 60, 0.7);
-}
-
-[data-theme="dark"] {
-  --header-bg: rgba(30, 26, 22, 0.95);
-  --hover-bg: rgba(184, 154, 122, 0.1);
-  --border-light: rgba(184, 154, 122, 0.2);
-  --text-secondary: rgba(255, 255, 255, 0.7);
 }
 
 /* انیمیشن‌ها */
@@ -726,16 +637,6 @@ export default {
   .search-box.focused {
     width: 200px;
   }
-
-  .user-profile-dropdown {
-    min-width: auto;
-    padding: 4px;
-  }
-
-  .user-info,
-  .profile-dropdown-btn {
-    display: none;
-  }
 }
 
 @media (max-width: 576px) {
@@ -764,7 +665,7 @@ export default {
     z-index: 1000;
   }
 
-  .theme-toggle,
+  .logout-btn,
   .notification-btn {
     width: 40px;
     height: 40px;
@@ -777,7 +678,5 @@ export default {
 .icon-search::before { content: "🔍"; }
 .icon-clear::before { content: "✕"; }
 .icon-bell::before { content: "🔔"; }
-.icon-sun::before { content: "☀️"; }
-.icon-moon::before { content: "🌙"; }
-.icon-chevron-down::before { content: "⌄"; }
+.icon-logout::before { content: "🚪"; }
 </style>

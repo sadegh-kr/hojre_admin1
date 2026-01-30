@@ -3,6 +3,41 @@
     <div class="page-header">
       <h2>لیست سفارشات</h2>
       <div class="header-actions">
+        <!-- فیلتر وضعیت -->
+        <div class="filter-group">
+          <label for="status-filter">وضعیت:</label>
+          <select
+              id="status-filter"
+              v-model="filters.status"
+              class="filter-select"
+
+          >
+            <option value="">همه وضعیت‌ها</option>
+            <option value="pending">در انتظار تایید</option>
+            <option value="prep">در حال آماده‌سازی</option>
+            <option value="send">در حال ارسال</option>
+            <option value="deliver">تحویل داده شده</option>
+            <option value="cancel">لغو شده</option>
+          </select>
+        </div>
+
+        <!-- فیلتر نوع تحویل -->
+        <div class="filter-group">
+          <label for="delivery-filter">نوع تحویل:</label>
+          <select
+              id="delivery-filter"
+              v-model="filters.delivery"
+              class="filter-select"
+
+          >
+            <option value="">همه روش‌ها</option>
+            <option value="takeoutN">تحویل حضوری (آنی)</option>
+            <option value="takeoutP">تحویل حضوری (پیش‌سفارش)</option>
+            <option value="dine-in">مصرف در محل</option>
+            <option value="delivery">ارسال به آدرس</option>
+          </select>
+        </div>
+
         <button @click="fetchOrders()" class="refresh-btn" :disabled="isLoading">
           <span class="refresh-icon">🔄</span>
           بروزرسانی
@@ -120,7 +155,6 @@ const showOrderModal = ref(false);
 const selectedOrderId = ref(null);
 const route = useRoute();
 const restaurantId = route.params.restaurantId;
-
 const orders = ref([]);
 const isLoading = ref(false);
 
@@ -133,25 +167,30 @@ const pagination = reactive({
   previous: null,
   totalPages: 0
 });
-console.log(pagination)
+
+
+
 // اطلاعات جستجو و مرتب‌سازی
 const filters = reactive({
   search: '',
+  status: '',
+  delivery: '',
   sortBy: '',
   sortOrder: 'asc'
 });
+
 
 // تعریف ستون‌های جدول
 const tableColumns = ref([
   {
     key: 'order_number',
-    title: 'شناسه سفارش',
+    title: 'شناسه',
     sortable: true,
     width: '180px'
   },
   {
     key: 'customer_phone',
-    title: 'شماره مشتری',
+    title: 'تماس',
     sortable: true,
     width: '140px'
   },
@@ -169,14 +208,14 @@ const tableColumns = ref([
   },
   {
     key: 'total_cost',
-    title: 'مبلغ کل',
+    title: ' کل',
     sortable: true,
     width: '140px',
     align: 'left'
   },
   {
     key: 'net_cost',
-    title: 'مبلغ خالص',
+    title: ' خالص',
     sortable: true,
     width: '140px',
     align: 'left'
@@ -189,7 +228,7 @@ const tableColumns = ref([
   },
   {
     key: 'created',
-    title: 'تاریخ ثبت',
+    title: 'تاریخ ',
     sortable: true,
     width: '180px'
   }
@@ -204,20 +243,20 @@ const tableActions = ref([
     icon: '👁️',
     title: 'مشاهده جزئیات سفارش'
   },
-  {
-    name: 'edit',
-    label: 'ویرایش',
-    class: 'edit-btn',
-    icon: '✏️',
-    title: 'ویرایش سفارش'
-  },
-  {
-    name: 'print',
-    label: 'چاپ',
-    class: 'print-btn',
-    icon: '🖨️',
-    title: 'چاپ فاکتور'
-  },
+  // {
+  //   name: 'edit',
+  //   label: 'ویرایش',
+  //   class: 'edit-btn',
+  //   icon: '✏️',
+  //   title: 'ویرایش سفارش'
+  // },
+  // {
+  //   name: 'print',
+  //   label: 'چاپ',
+  //   class: 'print-btn',
+  //   icon: '🖨️',
+  //   title: 'چاپ فاکتور'
+  // },
   {
     name: 'location',
     label: 'موقعیت',
@@ -252,19 +291,22 @@ const openGoogleMaps = (row) => {
 // تابع تبدیل داده‌های انگلیسی به فارسی
 const processOrdersData = (ordersData) => {
   return ordersData.map(order => {
-    // تبدیل وضعیت به فارسی
+    // تبدیل وضعیت به فارسی - منطبق با API
     let status_fa = '';
     switch(order.status) {
+      case 'pending':
+        status_fa = 'در انتظار تایید';
+        break;
       case 'prep':
         status_fa = 'در حال آماده‌سازی';
+        break;
+      case 'send':
+        status_fa = 'در حال ارسال';
         break;
       case 'deliver':
         status_fa = 'تحویل داده شده';
         break;
-      case 'pending':
-        status_fa = 'در انتظار';
-        break;
-      case 'cancelled':
+      case 'cancel':
         status_fa = 'لغو شده';
         break;
       default:
@@ -312,7 +354,6 @@ const processOrdersData = (ordersData) => {
     };
   });
 };
-
 // تابع اصلی دریافت سفارش‌ها
 // تابع اصلی دریافت سفارش‌ها
 const fetchOrders = async (page = 1, pageSize = pagination.pageSize) => {
@@ -326,6 +367,14 @@ const fetchOrders = async (page = 1, pageSize = pagination.pageSize) => {
     // اضافه کردن فیلتر جستجو
     if (filters.search) {
       params.search = filters.search;
+    }
+    if (filters.status) {
+      params.status = filters.status;
+    }
+
+    // اضافه کردن فیلتر نوع تحویل
+    if (filters.delivery) {
+      params.delivery = filters.delivery;
     }
 
     // اضافه کردن مرتب‌سازی
@@ -362,7 +411,47 @@ const fetchOrders = async (page = 1, pageSize = pagination.pageSize) => {
     isLoading.value = false;
   }
 };
-// تابع دریافت صفحه بعدی
+
+const applyFilters = () => {
+  // پاک کردن تایماوت قبلی
+  clearTimeout(filterTimeout);
+
+  // ایجاد تأخیر برای جلوگیری از درخواست‌های مکرر
+  filterTimeout = setTimeout(() => {
+    fetchOrders(1, pagination.pageSize);
+  }, 300); // تأخیر ۳۰۰ میلی‌ثانیه
+};
+
+// watch(
+//     [() => filters.status, () => filters.delivery],
+//     ([newStatus, newDelivery], [oldStatus, oldDelivery]) => {
+//       // اگر مقدار واقعاً تغییر کرده باشد
+//       if (newStatus !== oldStatus || newDelivery !== oldDelivery) {
+//         applyFilters();
+//       }
+//     },
+//     { deep: true }
+// );
+
+// همچنین می‌توانید جداگانه هم نظارت کنید:
+// watch(
+//     () => filters.status,
+//     (newStatus, oldStatus) => {
+//       if (newStatus !== oldStatus) {
+//         applyFilters();
+//       }
+//     }
+// );
+//
+// watch(
+//     () => filters.delivery,
+//     (newDelivery, oldDelivery) => {
+//       if (newDelivery !== oldDelivery) {
+//         applyFilters();
+//       }
+//     }
+// );
+
 const fetchNextPage = async () => {
   if (pagination.next) {
     isLoading.value = true;
@@ -460,7 +549,6 @@ const handleTableAction = ({ action, row }) => {
 
 const handleSearch = (query) => {
   filters.search = query;
-  // جستجوی سمت سرور با تأخیر
   clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
     fetchOrders(1, pagination.pageSize);
@@ -490,7 +578,7 @@ const handlePageSizeChange = (newPageSize) => {
 
 // متغیر برای تأخیر جستجو
 let searchTimeout = null;
-
+let filterTimeout = null;
 // توابع نمونه برای عملیات
 const viewOrderDetails = (order) => {
   const itemsList = order.items.map(item =>
@@ -514,36 +602,50 @@ const viewOrderDetails = (order) => {
 };
 
 const editOrder = (order) => {
-  const newStatus = prompt(
+  const statusOptions = [
+    {value: 'pending', label: 'در انتظار تایید'},
+    {value: 'prep', label: 'در حال آماده‌سازی'},
+    {value: 'send', label: 'در حال ارسال'},
+    {value: 'deliver', label: 'تحویل داده شده'},
+    {value: 'cancel', label: 'لغو شده'}
+  ];
+
+  let optionsText = '';
+  statusOptions.forEach((opt, index) => {
+    optionsText += `${index + 1}. ${opt.label}\n`;
+  });
+
+  const selected = prompt(
       `ویرایش وضعیت سفارش ${order.id}\n` +
-      `وضعیت فعلی: ${order.status_fa}\n` +
-      `وضعیت‌های ممکن:\n` +
-      `1. در حال آماده‌سازی\n` +
-      `2. تحویل داده شده\n` +
-      `3. در انتظار\n` +
-      `4. لغو شده\n\n` +
-      `وضعیت جدید را وارد کنید:`,
-      order.status_fa
+      `وضعیت فعلی: ${order.status_fa}\n\n` +
+      `وضعیت‌های ممکن:\n${optionsText}\n` +
+      `شماره وضعیت جدید را وارد کنید (1-5):`,
+      statusOptions.findIndex(opt => opt.value === order.status) + 1
   );
 
-  if (newStatus) {
-    console.log(`آپدیت سفارش ${order.id} به وضعیت: ${newStatus}`);
-    alert(`وضعیت سفارش ${order.id} به "${newStatus}" تغییر یافت.`);
+  if (selected) {
+    const selectedIndex = parseInt(selected) - 1;
+    if (selectedIndex >= 0 && selectedIndex < statusOptions.length) {
+      const newStatus = statusOptions[selectedIndex];
+      console.log(`آپدیت سفارش ${order.id} به وضعیت: ${newStatus.label}`);
+      alert(`وضعیت سفارش ${order.id} به "${newStatus.label}" تغییر یافت.`);
 
-    // بروزرسانی لیست
-    fetchOrders(pagination.currentPage, pagination.pageSize);
+      // بروزرسانی لیست
+      fetchOrders(pagination.currentPage, pagination.pageSize);
+    } else {
+      alert('شماره وضعیت نامعتبر است!');
+    }
   }
 };
-
 const printInvoice = (order) => {
-  console.log('چاپ فاکتور سفارش:', order.id);
+  console.log('چاپ فاکتور سفارش:', order.order_number);
 
   // شبیه‌سازی چاپ فاکتور
   const printWindow = window.open('', '_blank');
   printWindow.document.write(`
     <html dir="rtl">
       <head>
-        <title>فاکتور سفارش ${order.id}</title>
+        <title>فاکتور سفارش ${order.order_number}</title>
         <style>
           body { font-family: 'B Nazanin', Tahoma, Arial; padding: 20px; }
           h1 { text-align: center; color: #333; }
@@ -554,7 +656,43 @@ const printInvoice = (order) => {
           .items-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
           .items-table th, .items-table td { border: 1px solid #333; padding: 8px; text-align: center; }
           .total { font-size: 18px; font-weight: bold; text-align: left; margin-top: 20px; }
-          .footer { margin-top: 40px; text-align: center; color: #666; font-size: 12px; }
+          
+          /* استایل قسمت امضا و مهر */
+          .signature-section {
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 1px dashed #666;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+          }
+          .signature-box {
+            text-align: center;
+            width: 45%;
+          }
+          .signature-line {
+            border-bottom: 1px solid #333;
+            margin: 40px 0 10px 0;
+            padding-bottom: 5px;
+          }
+          .signature-text {
+            font-size: 14px;
+            color: #666;
+          }
+          .stamp-placeholder {
+            width: 120px;
+            height: 120px;
+            border: 2px dashed #999;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 12px;
+            margin: 0 auto;
+          }
+          
+          .footer { margin-top: 30px; text-align: center; color: #666; font-size: 12px; }
         </style>
       </head>
       <body>
@@ -563,7 +701,7 @@ const printInvoice = (order) => {
         <div class="header">
           <div class="info-row">
             <span class="info-label">شماره سفارش:</span>
-            <span>${order.id}</span>
+            <span>${order.order_number}</span>
           </div>
           <div class="info-row">
             <span class="info-label">تاریخ ثبت:</span>
@@ -574,11 +712,7 @@ const printInvoice = (order) => {
         <div class="info">
           <div class="info-row">
             <span class="info-label">شماره مشتری:</span>
-            <a href="tel:${order.customer.customer_phone}">${order.customer.customer_phone}</a>
-          </div>
-          <div class="info-row">
-            <span class="info-label">وضعیت:</span>
-            <span>${order.status_fa}</span>
+            <a href="tel:${order.customer.phone_number}">${order.customer.phone_number}</a>
           </div>
           <div class="info-row">
             <span class="info-label">نوع تحویل:</span>
@@ -600,24 +734,38 @@ const printInvoice = (order) => {
             ${order.items.map((item, index) => `
               <tr>
                 <td>${index + 1}</td>
-                <td>${item.name}</td>
+                <td>${item.item.name}</td>
                 <td>${item.quantity}</td>
-                <td>${new Intl.NumberFormat('fa-IR').format(item.price)} تومان</td>
-                <td>${new Intl.NumberFormat('fa-IR').format(item.price * item.quantity)} تومان</td>
+                <td>${new Intl.NumberFormat('fa-IR').format(item.item.price)} تومان</td>
+                <td>${new Intl.NumberFormat('fa-IR').format(item.item.price * item.quantity)} تومان</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
 
         <div class="total">
-          <div>مبلغ کل: ${order.total_cost_fa}</div>
-          <div>مبلغ خالص: ${order.net_cost_fa}</div>
+          <div>مبلغ کل: ${order.total_cost}</div>
+          <div>مبلغ خالص: ${order.net_cost}</div>
           ${order.discount_percent ? `<div>تخفیف: ${order.discount_percent}%</div>` : ''}
+        </div>
+
+        <!-- بخش امضا و مهر -->
+        <div class="signature-section">
+          <div class="signature-box">
+            <div class="signature-line"></div>
+            <div class="signature-text">امضاء مسئول فروش</div>
+          </div>
+          
+          <div class="signature-box">
+            <div class="stamp-placeholder">
+              مهر فروشگاه
+            </div>
+            <div class="signature-text" style="margin-top: 10px;">مهر و امضاء مدیریت</div>
+          </div>
         </div>
 
         <div class="footer">
           <p>با تشکر از خرید شما</p>
-          <p>رستوران شماره: ${restaurantId}</p>
           <p>تاریخ چاپ: ${new Date().toLocaleDateString('fa-IR')}</p>
         </div>
       </body>
@@ -658,7 +806,44 @@ onMounted(() => {
 
 .header-actions {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-group label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #495057;
+  white-space: nowrap;
+}
+
+.filter-select {
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  background-color: white;
+  font-size: 0.9rem;
+  color: #495057;
+  cursor: pointer;
+  min-width: 160px;
+  transition: all 0.2s ease;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #4dabf7;
+  box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.1);
+}
+
+.filter-select:hover {
+  border-color: #adb5bd;
 }
 
 .refresh-btn {
@@ -674,6 +859,7 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   transition: all 0.3s ease;
+  white-space: nowrap;
 }
 
 .refresh-btn:hover:not(:disabled) {
@@ -685,6 +871,7 @@ onMounted(() => {
 .refresh-btn:disabled {
   background-color: #adb5bd;
   cursor: not-allowed;
+  opacity: 0.7;
 }
 
 .refresh-icon {
@@ -747,7 +934,6 @@ onMounted(() => {
   font-size: 1rem;
 }
 
-/* استایل‌های سفارشی برای سلول‌های جدول */
 .customer-cell {
   direction: ltr;
   text-align: center;
@@ -761,6 +947,12 @@ onMounted(() => {
   padding: 4px 8px;
   border-radius: 4px;
   display: inline-block;
+  text-decoration: none;
+  transition: background-color 0.2s;
+}
+
+.phone-number:hover {
+  background-color: #e9ecef;
 }
 
 .status-badge {
@@ -935,88 +1127,7 @@ onMounted(() => {
   width: fit-content;
 }
 
-/* استایل دکمه‌های عملیات */
-.view-btn {
-  background-color: #4dabf7;
-  color: white;
-  border: none;
-}
-
-.view-btn:hover {
-  background-color: #339af0;
-}
-
-.edit-btn {
-  background-color: #ffc107;
-  color: #212529;
-  border: none;
-}
-
-.edit-btn:hover {
-  background-color: #e0a800;
-}
-
-.print-btn {
-  background-color: #20c997;
-  color: white;
-  border: none;
-}
-
-.print-btn:hover {
-  background-color: #1ba87e;
-}
-
-/* ریسپانسیو */
-@media (max-width: 768px) {
-  .order-list-container {
-    padding: 10px;
-  }
-
-  .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-
-  .page-header h2 {
-    font-size: 1.3rem;
-  }
-
-  .header-actions {
-    width: 100%;
-    justify-content: flex-end;
-  }
-
-  .loading-container {
-    padding: 40px 10px;
-  }
-
-  .empty-state {
-    padding: 40px 15px;
-  }
-
-  .empty-icon {
-    font-size: 3rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .page-header h2 {
-    font-size: 1.2rem;
-  }
-
-  .refresh-btn {
-    padding: 8px 16px;
-    font-size: 0.85rem;
-  }
-
-  .status-badge,
-  .delivery-badge {
-    min-width: 100px;
-    padding: 6px 10px;
-    font-size: 0.75rem;
-  }
-}
+/* دکمه‌های عملیات جدول */
 .view-btn {
   background-color: #4dabf7;
   color: white;
@@ -1061,5 +1172,125 @@ onMounted(() => {
 
 .print-btn:hover {
   background-color: #1ba87e;
+}
+
+@media (max-width: 992px) {
+  .header-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .filter-group {
+    justify-content: space-between;
+  }
+
+  .filter-select {
+    flex-grow: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .order-list-container {
+    padding: 10px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .page-header h2 {
+    font-size: 1.3rem;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .filter-group label {
+    font-size: 0.85rem;
+  }
+
+  .filter-select {
+    font-size: 0.85rem;
+    min-width: 140px;
+  }
+
+  .loading-container {
+    padding: 40px 10px;
+  }
+
+  .empty-state {
+    padding: 40px 15px;
+  }
+
+  .empty-icon {
+    font-size: 3rem;
+  }
+
+  .status-badge,
+  .delivery-badge {
+    min-width: 100px;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header h2 {
+    font-size: 1.2rem;
+  }
+
+  .refresh-btn {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+  }
+
+  .filter-select {
+    min-width: 120px;
+    padding: 6px 10px;
+  }
+}
+.status-badge {
+  padding: 8px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: inline-block;
+  text-align: center;
+  min-width: 120px;
+  letter-spacing: -0.5px;
+}
+
+.status-pending {
+  background-color: #cce5ff;
+  color: #004085;
+  border: 1px solid #b8daff;
+}
+
+.status-prep {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.status-send {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+.status-deliver {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.status-cancel {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
 }
 </style>

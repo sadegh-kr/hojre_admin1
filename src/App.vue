@@ -1,157 +1,121 @@
 <template>
-  <div id="app" :class="appTheme">
+  <div id="app" class="min-h-screen font-sans antialiased bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50 text-gray-800 pb-16 sm:pb-20">
     <!-- نمایش صفحه فعلی -->
     <router-view />
 
-
-    <div style="z-index: 0" class="app-status-bar">
-      <div class="status-content">
-        <span v-if="isOnline" class="online-status">
-          <i class="fas fa-wifi"></i> آنلاین
-        </span>
-        <span v-else class="offline-status">
-          <i class="fas fa-exclamation-triangle"></i> آفلاین
-        </span>
-        <span class="app-version">کافه حجره v1.0.0</span>
+    <!-- نوار وضعیت پایین -->
+    <div  class="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-sm bg-gradient-to-r from-amber-900/95 to-amber-800/95 border-t border-amber-700/30 shadow-lg !p-2">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        <div class="flex flex-col  sm:flex-row justify-between items-center gap-2 p-[20px]">
+          <!-- وضعیت اتصال -->
+          <div class="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20">
+            <div class="flex items-center gap-2">
+              <div v-if="isOnline" class="flex items-center gap-2">
+                <div class="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                <span class="text-green-300 font-medium">آنلاین</span>
+              </div>
+              <div v-else class="flex items-center gap-2">
+                <div class="h-2 w-2 rounded-full bg-yellow-500"></div>
+                <span class="text-yellow-300 font-medium">آفلاین</span>
+              </div>
+            </div>
+            
+            <div class="hidden sm:block h-4 w-px bg-white/30 mx-2"></div>
+            
+            <div class="flex items-center gap-2 text-sm opacity-90 text-white ">
+              <i :class="isOnline ? 'fas fa-wifi' : 'fas fa-exclamation-triangle'"></i>
+              <span>{{ isOnline ? 'اتصال اینترنت برقرار است' : 'اتصال اینترنت قطع است' }}</span>
+            </div>
+          </div>
+          
+          <!-- اطلاعات برنامه -->
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
+              <i class="fas fa-mug-hot text-amber-300"></i>
+              <span class="font-bold text-white">کافه حجره</span>
+              <span class="text-xs bg-amber-600/30 px-2 py-1 rounded-full text-white !p-1">v1.0.0</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
-<script>
-export default {
-  name: 'App',
-  data() {
-    return {
-      isOnline: navigator.onLine,
-      isDarkMode: false
-    }
-  },
-  computed: {
-    appTheme() {
-      return this.isDarkMode ? 'dark-theme' : 'light-theme'
-    }
-  },
-  mounted() {
-    // بررسی وضعیت اتصال اینترنت
-    window.addEventListener('online', this.updateOnlineStatus)
-    window.addEventListener('offline', this.updateOnlineStatus)
+<script setup>
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 
-    // بررسی حالت تاریک از localStorage
-    const savedTheme = localStorage.getItem('cafeHojre-theme')
-    if (savedTheme === 'dark') {
-      this.isDarkMode = true
-    }
-  },
-  beforeUnmount() {
-    window.removeEventListener('online', this.updateOnlineStatus)
-    window.removeEventListener('offline', this.updateOnlineStatus)
-  },
-  methods: {
-    updateOnlineStatus() {
-      this.isOnline = navigator.onLine
-    }
+const isOnline = ref(navigator.onLine)
+
+const updateOnlineStatus = () => {
+  isOnline.value = navigator.onLine
+  
+  // نمایش نوتیفیکیشن برای تغییر وضعیت
+  if (isOnline.value) {
+    console.log('اتصال اینترنت برقرار شد')
+  } else {
+    console.log('اتصال اینترنت قطع شد')
   }
 }
+
+onMounted(() => {
+  // بررسی وضعیت اتصال اینترنت
+  window.addEventListener('online', updateOnlineStatus)
+  window.addEventListener('offline', updateOnlineStatus)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('online', updateOnlineStatus)
+  window.removeEventListener('offline', updateOnlineStatus)
+})
 </script>
 
 <style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* انیمیشن‌های صفحه */
+.page-enter-active,
+.page-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-#app {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  min-height: 100vh;
-  transition: background-color 0.3s ease;
-}
-
-/* تم‌های کلی برنامه */
-.light-theme {
-  background-color: #f9f5f0;
-  color: #333;
-}
-
-.dark-theme {
-  background-color: #1a1a1a;
-  color: #f0f0f0;
-}
-
-/* نوار وضعیت */
-.app-status-bar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(139, 69, 19, 0.9);
-  color: white;
-  padding: 8px 20px;
-  font-size: 0.8rem;
-  z-index: 1000;
-}
-
-.dark-theme .app-status-bar {
-  background: rgba(58, 40, 35, 0.9);
-}
-
-.status-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.online-status {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: #4CAF50;
-}
-
-.offline-status {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: #FF9800;
-}
-
-.app-version {
-  opacity: 0.8;
-}
-
-/* انیمیشن‌های تغییر صفحه */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
-}
-
-.fade-enter-from,
-.fade-leave-to {
+.page-enter-from {
   opacity: 0;
+  transform: translateY(10px);
 }
 
-/* حالت‌های مختلف برای صفحات */
-.page-container {
-  min-height: calc(100vh - 40px);
-  padding: 20px;
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* اسکرول بار زیبا */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(139, 69, 19, 0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 69, 19, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 69, 19, 0.5);
+}
+
+/* پدینگ برای محتوای صفحه */
+.page-content {
+  min-height: calc(100vh - 120px);
+  padding: 1.5rem;
 }
 
 /* رسپانسیو */
-@media (max-width: 768px) {
-  .app-status-bar {
-    padding: 6px 15px;
-    font-size: 0.75rem;
-  }
-
-  .status-content {
-    flex-direction: column;
-    gap: 3px;
-    text-align: center;
+@media (max-width: 640px) {
+  .page-content {
+    padding: 1rem;
+    min-height: calc(100vh - 140px);
   }
 }
 </style>

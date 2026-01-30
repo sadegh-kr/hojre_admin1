@@ -154,7 +154,7 @@ export default {
 /* استایل محتوای اصلی */
 .main-content {
   grid-area: main;
-  padding: 30px;
+  padding: 10px;
   overflow-y: auto;
   //max-height: calc(100vh - 80px);
 }

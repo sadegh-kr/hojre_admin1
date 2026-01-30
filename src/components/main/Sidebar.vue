@@ -1,7 +1,8 @@
 <template>
   <aside
-      class="main-sidebar"
+      class="main-sidebar bg-white"
       :class="{
+
       'sidebar-collapsed': isCollapsed,
       'sidebar-mobile-open': isMobileOpen,
       'dark-sidebar': isDarkMode
@@ -15,23 +16,6 @@
           <i :class="isCollapsed ? 'icon-chevron-right' : 'icon-chevron-left'"></i>
         </div>
       </button>
-
-      <!-- لوگوی سایدبار -->
-      <div class="sidebar-logo" v-if="!isCollapsed">
-        <div class="sidebar-logo-icon">
-          <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-            <path d="M24,8 C30,6 38,9 42,16 C46,23 44,32 38,38 C32,44 23,46 16,42 C9,38 6,30 8,24 C10,18 18,10 24,8 Z"
-                  fill="var(--sidebar-icon-color)"/>
-            <path d="M24,4 Q27,2 30,4 Q33,6 30,8 Q27,10 24,8 Q21,6 24,4 Z" fill="#fff"/>
-            <path d="M18,3 Q21,1 24,3 Q27,5 24,7 Q21,9 18,7 Q15,5 18,3 Z" fill="#fff"/>
-            <path d="M30,3 Q33,1 36,3 Q39,5 36,7 Q33,9 30,7 Q27,5 30,3 Z" fill="#fff"/>
-          </svg>
-        </div>
-        <div class="sidebar-logo-text">
-          <span class="logo-main">کافه</span>
-          <span class="logo-sub">حجره</span>
-        </div>
-      </div>
 
       <!-- دکمه بستن موبایل -->
       <button v-if="isMobileOpen" class="mobile-close-btn" @click="$emit('close-mobile-sidebar')">
@@ -56,67 +40,7 @@
         <h3 class="profile-name">{{ userName }}</h3>
         <p class="profile-role">مدیر ارشد کافه</p>
 
-        <div class="profile-stats">
-          <div class="stat-item">
-            <span class="stat-value">۹۵٪</span>
-            <span class="stat-label">رضایت</span>
-          </div>
-          <div class="stat-divider"></div>
-          <div class="stat-item">
-            <span class="stat-value">۴.۸</span>
-            <span class="stat-label">امتیاز</span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- بخش آمار سریع -->
-    <div class="sidebar-quick-stats" v-if="!isCollapsed">
-      <div class="quick-stats-header">
-        <i class="stats-icon icon-trend"></i>
-        <span>آمار امروز</span>
-      </div>
-
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon revenue">
-            <i class="icon-cash"></i>
-          </div>
-          <div class="stat-content">
-            <span class="stat-value">۳.۲M</span>
-            <span class="stat-label">درآمد</span>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon orders">
-            <i class="icon-coffee"></i>
-          </div>
-          <div class="stat-content">
-            <span class="stat-value">۱۲۴</span>
-            <span class="stat-label">سفارش</span>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon customers">
-            <i class="icon-users"></i>
-          </div>
-          <div class="stat-content">
-            <span class="stat-value">۸۹</span>
-            <span class="stat-label">مشتری</span>
-          </div>
-        </div>
-
-        <div class="stat-card">
-          <div class="stat-icon rating">
-            <i class="icon-star"></i>
-          </div>
-          <div class="stat-content">
-            <span class="stat-value">۴.۸</span>
-            <span class="stat-label">امتیاز</span>
-          </div>
-        </div>
+        
       </div>
     </div>
 
@@ -151,83 +75,8 @@
         </ul>
       </div>
 
-      <div class="nav-section" v-if="!isCollapsed">
-        <div class="section-label">ابزارهای مدیریت</div>
-        <ul class="nav-menu">
-          <li v-for="item in managementMenu" :key="item.id">
-            <router-link
-                :to="item.path"
-                class="nav-item"
-                :class="{'active': isActive(item.path)}"
-                @click="$emit('close-mobile-sidebar')"
-            >
-              <div class="nav-icon-wrapper">
-                <i :class="item.icon"></i>
-              </div>
-
-              <div class="nav-content" v-if="!isCollapsed">
-                <span class="nav-title">{{ item.title }}</span>
-                <span v-if="item.tag" class="nav-tag" :class="item.tagClass">{{ item.tag }}</span>
-              </div>
-            </router-link>
-          </li>
-        </ul>
-      </div>
     </nav>
 
-    <!-- پیشنهاد ویژه -->
-    <div class="sidebar-promo" v-if="!isCollapsed">
-      <div class="promo-content">
-        <div class="promo-icon">
-          <i class="icon-gift"></i>
-        </div>
-        <div class="promo-text">
-          <h4>پیشنهاد ویژه!</h4>
-          <p>۲۰٪ تخفیف روی تمام قهوه‌ها</p>
-        </div>
-      </div>
-      <button class="promo-btn">
-        <span>مشاهده</span>
-        <i class="icon-arrow-left"></i>
-      </button>
-    </div>
-
-    <!-- بخش پایینی -->
-    <div class="sidebar-footer">
-      <!-- حالت عادی -->
-      <div class="footer-content" v-if="!isCollapsed">
-        <div class="user-status">
-          <div class="status-indicator">
-            <div class="status-dot"></div>
-            <span>آنلاین</span>
-          </div>
-          <div class="last-login">
-            <i class="icon-clock"></i>
-            <span>آخرین ورود: ۱۴:۳۰</span>
-          </div>
-        </div>
-
-        <button class="logout-btn" @click="handleLogout">
-          <i class="icon-logout"></i>
-          <span>خروج از حساب</span>
-        </button>
-      </div>
-
-      <!-- حالت جمع شده -->
-      <div class="footer-collapsed" v-else>
-        <button class="logout-btn-collapsed" title="خروج" @click="handleLogout">
-          <i class="icon-logout"></i>
-        </button>
-        <div class="quick-actions">
-          <button class="quick-action" title="تنظیمات">
-            <i class="icon-settings"></i>
-          </button>
-          <button class="quick-action" title="پشتیبانی">
-            <i class="icon-help"></i>
-          </button>
-        </div>
-      </div>
-    </div>
 
     <!-- حالت حداقل -->
     <div class="sidebar-minimal" v-if="isCollapsed">
@@ -267,18 +116,18 @@ export default {
       mainMenu: [
         { id: 1, title: "داشبورد", path: "/dashboard", icon: "icon-dashboard", badge: "" },
         { id: 2, title: "لیست رستوان ها", path: "/dashboard/restaurant_list", icon: "icon-menu", notification: true },
-        { id: 3, title: "منو کافه", path: "/dashboard/menu", icon: "icon-menu", badge: "جدید", hasSubmenu: true },
-        { id: 4, title: "سفارش‌ها", path: "/dashboard/orders", icon: "icon-orders", badge: "۵" },
-        { id: 5, title: "مشتریان", path: "/dashboard/customers", icon: "icon-users", badge: "۳" },
-        { id: 6, title: "گزارش‌ها", path: "/dashboard/reports", icon: "icon-chart", hasSubmenu: true },
-        { id: 7, title: "انبار", path: "/dashboard/inventory", icon: "icon-box" }
+        { id: 3, title: "مشتریان", path: "/dashboard/user_list", icon: "icon-menu", badge: "جدید", hasSubmenu: true },
+        // { id: 4, title: "سفارش‌ها", path: "/dashboard/orders", icon: "icon-orders", badge: "۵" },
+        // { id: 5, title: "مشتریان", path: "/dashboard/customers", icon: "icon-users", badge: "۳" },
+        // { id: 6, title: "گزارش‌ها", path: "/dashboard/reports", icon: "icon-chart", hasSubmenu: true },
+        // { id: 7, title: "انبار", path: "/dashboard/inventory", icon: "icon-box" }
       ],
-      managementMenu: [
-        { id: 8, title: "کارمندان", path: "/dashboard/employees", icon: "icon-team", tag: "۳" },
-        { id: 9, title: "مالی", path: "/dashboard/finance", icon: "icon-wallet", tag: "جدید", tagClass: "tag-new" },
-        { id: 10, title: "تنظیمات", path: "/dashboard/settings", icon: "icon-settings" },
-        { id: 11, title: "پشتیبانی", path: "/dashboard/support", icon: "icon-help", tag: "۲", tagClass: "tag-support" }
-      ]
+      // managementMenu: [
+      //   { id: 8, title: "کارمندان", path: "/dashboard/employees", icon: "icon-team", tag: "۳" },
+      //   { id: 9, title: "مالی", path: "/dashboard/finance", icon: "icon-wallet", tag: "جدید", tagClass: "tag-new" },
+      //   { id: 10, title: "تنظیمات", path: "/dashboard/settings", icon: "icon-settings" },
+      //   { id: 11, title: "پشتیبانی", path: "/dashboard/support", icon: "icon-help", tag: "۲", tagClass: "tag-support" }
+      // ]
     }
   },
   computed: {
@@ -360,7 +209,7 @@ export default {
 <style scoped>
 .main-sidebar {
   grid-area: sidebar;
-  background: linear-gradient(180deg, var(--sidebar-bg) 0%, var(--sidebar-bg-secondary) 100%);
+  background: white;
   color: var(--sidebar-text);
   display: flex;
   flex-direction: column;
@@ -674,9 +523,10 @@ export default {
 
 /* منوی اصلی */
 .sidebar-nav {
+
   flex: 1;
   padding: 20px 0;
-  overflow-y: auto;
+  /* overflow-y: auto; */
 }
 
 .nav-section {
@@ -869,6 +719,7 @@ export default {
 
 /* بخش پایینی */
 .sidebar-footer {
+  margin-bottom: 50px;
   padding: 20px;
   border-top: 1px solid var(--sidebar-border);
 }

@@ -1,5 +1,3 @@
-[file name]: OrderDetailsModal.vue
-[file content begin]
 <template>
   <BaseModal
       v-model="isVisible"
@@ -42,9 +40,23 @@
           </div>
           <div class="info-item">
             <span class="info-label">وضعیت:</span>
-            <span :class="`status-badge status-${order.status}`">
-              {{ order.status_fa }}
-            </span>
+            <div class="status-control">
+              <select
+                  v-model="selectedStatus"
+                  @change="updateOrderStatus"
+                  class="status-select"
+                  :disabled="statusUpdating"
+              >
+                <option value="pending">در انتظار تایید</option>
+                <option value="prep">در حال آماده‌سازی</option>
+                <option value="send">در حال ارسال</option>
+                <option value="deliver">تحویل داده شده</option>
+                <option value="cancel">لغو شده</option>
+              </select>
+              <div v-if="statusUpdating" class="status-updating">
+                در حال بروزرسانی...
+              </div>
+            </div>
           </div>
           <div class="info-item">
             <span class="info-label">نوع تحویل:</span>
@@ -54,11 +66,11 @@
           </div>
           <div class="info-item">
             <span class="info-label">مبلغ کل:</span>
-            <span class="info-value price">{{ order.total_cost_fa }}</span>
+            <span class="info-value price">{{ order.total_cost }} تومان</span>
           </div>
           <div class="info-item">
             <span class="info-label">مبلغ خالص:</span>
-            <span class="info-value price">{{ order.net_cost_fa }}</span>
+            <span class="info-value price">{{ order.net_cost }} تومان</span>
           </div>
           <div v-if="order.discount_percent" class="info-item">
             <span class="info-label">تخفیف:</span>
@@ -157,18 +169,18 @@
     <!-- اسلات فوتر -->
     <template #footer>
       <div class="modal-actions">
-        <button @click="printInvoice" class="action-btn print-btn" :disabled="loading">
+        <button @click="printInvoice" class="action-btn print-btn" :disabled="loading || statusUpdating">
           🖨️ چاپ فاکتور
         </button>
         <button
             v-if="order?.address?.location?.latitude"
             @click="openMap"
             class="action-btn map-btn"
-            :disabled="loading"
+            :disabled="loading || statusUpdating"
         >
           📍 بازکردن نقشه
         </button>
-        <button @click="close" class="action-btn close-btn" :disabled="loading">
+        <button @click="close" class="action-btn close-btn" :disabled="loading || statusUpdating">
           بستن
         </button>
       </div>
@@ -177,9 +189,9 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch } from 'vue';
 import BaseModal from '../BaseModal.vue';
-import OrderApi from '@/api/order.api.js'; // فرض می‌کنیم این API موجود است
+import OrderApi from '@/api/order.api.js';
 
 const props = defineProps({
   orderId: {
@@ -190,7 +202,6 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
-  // optional: اگر داده از قبل موجود باشد
   initialData: {
     type: Object,
     default: null
@@ -201,7 +212,8 @@ const emit = defineEmits([
   'update:modelValue',
   'close',
   'print',
-  'open-map'
+  'open-map',
+  'status-updated'
 ]);
 
 // Reactive state
@@ -209,6 +221,8 @@ const isVisible = ref(props.modelValue);
 const order = ref(props.initialData);
 const loading = ref(false);
 const error = ref(null);
+const selectedStatus = ref('');
+const statusUpdating = ref(false);
 
 // عنوان مودال
 const modalTitle = computed(() => {
@@ -242,26 +256,25 @@ const formatTime = (dateStr) => {
   }).format(date);
 };
 
+// تابع برای تبدیل کد وضعیت به نام فارسی
+const getStatusFaName = (statusCode) => {
+  const statusMap = {
+    'pending': 'در انتظار تایید',
+    'prep': 'در حال آماده‌سازی',
+    'send': 'در حال ارسال',
+    'deliver': 'تحویل داده شده',
+    'cancel': 'لغو شده'
+  };
+  return statusMap[statusCode] || statusCode;
+};
+
 // پردازش داده‌های سفارش
 const processOrderData = (orderData) => {
+  // ذخیره وضعیت فعلی برای select
+  selectedStatus.value = orderData.status;
+
   // تبدیل وضعیت به فارسی
-  let status_fa = '';
-  switch(orderData.status) {
-    case 'prep':
-      status_fa = 'در حال آماده‌سازی';
-      break;
-    case 'deliver':
-      status_fa = 'تحویل داده شده';
-      break;
-    case 'pending':
-      status_fa = 'در انتظار';
-      break;
-    case 'cancelled':
-      status_fa = 'لغو شده';
-      break;
-    default:
-      status_fa = orderData.status;
-  }
+  let status_fa = getStatusFaName(orderData.status);
 
   // تبدیل نوع تحویل به فارسی
   let delivery_fa = '';
@@ -316,6 +329,85 @@ const fetchOrderDetails = async () => {
   }
 };
 
+// آپدیت وضعیت سفارش
+const updateOrderStatus = async () => {
+  console.log('شروع آپدیت وضعیت...');
+  console.log('orderId:', props.orderId);
+  console.log('selectedStatus:', selectedStatus.value);
+  console.log('order.status فعلی:', order.value?.status);
+
+  if (!props.orderId || !selectedStatus.value) {
+    console.log('❌ orderId یا selectedStatus نامعتبر');
+    return;
+  }
+
+  if (selectedStatus.value === order.value?.status) {
+    console.log('⚠️ وضعیت تغییر نکرده');
+    return;
+  }
+
+  console.log('statusUpdating = true');
+  statusUpdating.value = true;
+
+  try {
+    console.log('ارسال درخواست به API...');
+    const data = {
+      status: selectedStatus.value
+    };
+
+    const response = await OrderApi.updateOrderStatus(props.orderId, data);
+    console.log('✅ پاسخ API:', response);
+    console.log('داده‌های بازگشتی:', response.data);
+
+    // ⚠️ مشکل اینجا است: پاسخ API فقط پیام است، نه کل داده‌های سفارش
+    // ما باید دوباره داده‌های کامل سفارش را بگیریم
+
+    // 1. ابتدا وضعیت select را آپدیت کنیم
+    selectedStatus.value = response.data.status; // این خط مهم است!
+
+    // 2. اگر order.value داریم، وضعیت آن را آپدیت کنیم
+    if (order.value) {
+      order.value.status = response.data.status;
+      order.value.status_fa = getStatusFaName(response.data.status);
+    }
+
+    // 3. یا اگر می‌خواهیم داده‌های کامل را دوباره بگیریم:
+    // await fetchOrderDetails(); // این خط را فعال کنید
+
+    console.log('✅ وضعیت آپدیت شد');
+    console.log('order.value جدید:', order.value);
+
+    // ارسال event به parent
+    emit('status-updated', {
+      orderId: props.orderId,
+      newStatus: selectedStatus.value,
+      order: order.value
+    });
+
+    // نمایش پیام موفقیت
+    const statusName = getStatusFaName(selectedStatus.value);
+    alert(`✅ وضعیت سفارش با موفقیت به "${statusName}" تغییر یافت.`);
+
+  } catch (err) {
+    console.error('❌ خطا در بروزرسانی وضعیت:', err);
+    console.error('داده خطا:', err.response?.data);
+    console.error('کد وضعیت:', err.response?.status);
+
+    // بازگشت به وضعیت قبلی
+    selectedStatus.value = order.value?.status || '';
+
+    const errorMessage = err.response?.data?.message ||
+        err.response?.data?.status?.[0] ||
+        err.message ||
+        'خطا در بروزرسانی وضعیت سفارش';
+
+    alert(`❌ خطا: ${errorMessage}`);
+
+  } finally {
+    console.log('statusUpdating = false');
+    statusUpdating.value = false;
+  }
+};
 // باز کردن نقشه
 const openMap = () => {
   if (!order.value?.address?.location?.latitude) return;
@@ -347,6 +439,8 @@ const onClose = () => {
     order.value = null;
     error.value = null;
     loading.value = false;
+    selectedStatus.value = '';
+    statusUpdating.value = false;
   }, 300);
 };
 
@@ -386,7 +480,11 @@ defineExpose({
     }
   },
   close,
-  fetchOrderDetails
+  fetchOrderDetails,
+  updateOrderStatus: (status) => {
+    selectedStatus.value = status;
+    return updateOrderStatus();
+  }
 });
 </script>
 
@@ -676,7 +774,81 @@ h4 {
   font-size: 1.2rem;
 }
 
-/* دکمه‌های وضعیت (از کامپوننت اصلی کپی شده) */
+/* کنترل وضعیت */
+.status-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-select {
+  padding: 6px 12px;
+  border: 2px solid #4dabf7;
+  border-radius: 6px;
+  background-color: white;
+  font-size: 0.9rem;
+  color: #2c3e50;
+  cursor: pointer;
+  min-width: 180px;
+  transition: all 0.2s ease;
+}
+
+.status-select:focus {
+  outline: none;
+  border-color: #339af0;
+  box-shadow: 0 0 0 3px rgba(51, 154, 240, 0.1);
+}
+
+.status-select:disabled {
+  background-color: #f8f9fa;
+  border-color: #adb5bd;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.status-select:hover:not(:disabled) {
+  border-color: #339af0;
+}
+
+.status-updating {
+  font-size: 0.8rem;
+  color: #6c757d;
+  background: #f8f9fa;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* گزینه‌های select */
+.status-select option {
+  padding: 8px;
+}
+
+.status-select option[value="pending"] {
+  color: #004085;
+  background: #cce5ff;
+}
+
+.status-select option[value="prep"] {
+  color: #856404;
+  background: #fff3cd;
+}
+
+.status-select option[value="send"] {
+  color: #0c5460;
+  background: #d1ecf1;
+}
+
+.status-select option[value="deliver"] {
+  color: #155724;
+  background: #d4edda;
+}
+
+.status-select option[value="cancel"] {
+  color: #721c24;
+  background: #f8d7da;
+}
+
+/* دکمه‌های وضعیت */
 .status-badge {
   padding: 6px 12px;
   border-radius: 20px;
@@ -810,6 +982,16 @@ h4 {
     padding: 10px 12px;
   }
 
+  .status-control {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .status-select {
+    min-width: 100%;
+  }
+
   .modal-actions {
     flex-direction: column;
   }
@@ -820,4 +1002,3 @@ h4 {
   }
 }
 </style>
-[file content end]

@@ -18,8 +18,8 @@ class OrderAPI extends BaseAPI {
     }
 
     // ایجاد سفارش جدید
-    createOrder(data) {
-        return this.post(`${this.basePath}/create/`, data)
+    updateOrderStatus(orderId, data) {
+        return this.patch(`${this.basePath}update-status/${orderId}/`, data)
     }
 
     // آپدیت سفارش
