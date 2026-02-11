@@ -21,10 +21,13 @@ class OrderAPI extends BaseAPI {
     updateOrderStatus(orderId, data) {
         return this.patch(`${this.basePath}update-status/${orderId}/`, data)
     }
+    userOrderList(UserId, params) {
+        return this.get(`${this.basePath}user-order/${UserId}/`, {params})
+    }
 
     // آپدیت سفارش
     updateOrder(orderId, data) {
-        return this.put(`${this.basePath}/${orderId}/`, data)
+        return this.get(`${this.basePath}/${orderId}/`, data)
     }
 
     // حذف سفارش

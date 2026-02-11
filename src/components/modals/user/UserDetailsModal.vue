@@ -24,236 +24,279 @@
 
     <!-- حالت موفق -->
     <div v-else-if="user" class="user-details-content">
-      <!-- اطلاعات اصلی کاربر -->
-      <div class="user-info-section">
-        <h4>👤 اطلاعات اصلی</h4>
-        <div class="avatar-section">
-          <div class="avatar-container">
-            <img
-                v-if="user.avatar"
-                :src="user.avatar"
-                :alt="user.full_name"
-                class="user-avatar"
-            >
-            <div v-else class="avatar-placeholder">
+      <!-- کارت هدر کاربر -->
+      <div class="user-header-card">
+        <div class="user-header-avatar">
+          <div class="avatar-large">
+            <div class="avatar-placeholder-large">
               {{ userInitials }}
             </div>
           </div>
-          <div class="avatar-actions">
-            <button @click="changeAvatar" class="avatar-btn change-btn">
-              تغییر عکس
-            </button>
-            <button v-if="user.avatar" @click="removeAvatar" class="avatar-btn remove-btn">
-              حذف عکس
-            </button>
-          </div>
-        </div>
-        <div class="info-grid">
-          <div class="info-item">
-            <span class="info-label">نام کامل:</span>
-            <span class="info-value">{{ user.full_name || 'ثبت نشده' }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">شماره موبایل:</span>
-            <a :href="`tel:${user.phone_number}`" class="info-value phone-link">
-              {{ user.phone_number }}
-            </a>
-          </div>
-          <div class="info-item">
-            <span class="info-label">ایمیل:</span>
-            <a v-if="user.email" :href="`mailto:${user.email}`" class="info-value email-link">
-              {{ user.email }}
-            </a>
-            <span v-else class="info-value">ثبت نشده</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">کد ملی:</span>
-            <span class="info-value">{{ user.national_code || 'ثبت نشده' }}</span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">وضعیت حساب:</span>
-            <div class="status-control">
-              <select
-                  v-model="selectedStatus"
-                  @change="updateUserStatus"
-                  class="status-select"
-                  :disabled="statusUpdating"
-              >
-                <option value="active">فعال</option>
-                <option value="inactive">غیرفعال</option>
-                <option value="suspended">تعلیق شده</option>
-                <option value="banned">مسدود شده</option>
-              </select>
-              <div v-if="statusUpdating" class="status-updating">
-                در حال بروزرسانی...
+          <div class="user-header-info">
+            <h2>{{ user.name || 'کاربر' }}</h2>
+            <div class="user-badges">
+              <span class="restaurant-badge">
+                🍽️ {{ user.restaurant_name }}
+              </span>
+              <span class="user-id-badge">
+                🆔 {{ user.id.substring(0, 8) }}...
+              </span>
+            </div>
+            <div class="user-contact-info">
+              <div class="contact-item">
+                <span class="contact-icon">📱</span>
+                <a :href="`tel:${user.phone_number}`" class="contact-link">
+                  {{ user.phone_number }}
+                </a>
+              </div>
+              <div class="contact-item" v-if="user.code">
+                <span class="contact-icon">🎫</span>
+                <span>کد: {{ user.code }}</span>
               </div>
             </div>
-          </div>
-          <div class="info-item">
-            <span class="info-label">نقش:</span>
-            <span :class="`role-badge role-${user.role}`">
-              {{ user.role_fa }}
-            </span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">تاریخ عضویت:</span>
-            <span class="info-value">
-              {{ formatDate(user.created_at) }}
-            </span>
-          </div>
-          <div class="info-item">
-            <span class="info-label">آخرین ورود:</span>
-            <span class="info-value" v-if="user.last_login">
-              {{ formatDate(user.last_login) }} - {{ formatTime(user.last_login) }}
-            </span>
-            <span v-else class="info-value">هنوز وارد نشده</span>
-          </div>
-          <div v-if="user.birth_date" class="info-item">
-            <span class="info-label">تاریخ تولد:</span>
-            <span class="info-value">{{ formatDate(user.birth_date) }}</span>
-          </div>
-          <div v-if="user.gender" class="info-item">
-            <span class="info-label">جنسیت:</span>
-            <span class="info-value">{{ user.gender_fa }}</span>
           </div>
         </div>
       </div>
 
-      <!-- اطلاعات مالی -->
-      <div class="financial-info-section">
-        <h4>💰 اطلاعات مالی</h4>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon">💳</div>
-            <div class="stat-info">
-              <span class="stat-label">اعتبار کیف پول</span>
-              <span class="stat-value">{{ formatPrice(user.wallet_balance || 0) }} تومان</span>
+      <!-- گرید اطلاعات اصلی -->
+      <div class="info-grid-section">
+        <div class="section-title">
+          <span class="title-icon">📋</span>
+          <h4>اطلاعات کاربری</h4>
+        </div>
+
+        <div class="info-cards-grid">
+          <!-- کارت اطلاعات پایه -->
+          <div class="info-card">
+            <div class="info-card-header">
+              <span class="card-icon">👤</span>
+              <h5>اطلاعات پایه</h5>
             </div>
-            <button @click="showWalletTransactions" class="stat-action">
-              مشاهده تراکنش‌ها
-            </button>
+            <div class="info-card-content">
+              <div class="info-row">
+                <span class="row-label">نام و نام خانوادگی:</span>
+                <div class="row-value-editable">
+                  <span v-if="!editing.name" class="row-value">{{ user.name || 'ثبت نشده' }}</span>
+                  <input
+                      v-else
+                      v-model="editForm.name"
+                      class="edit-input"
+                      placeholder="نام کاربر"
+                  >
+                  <button @click="toggleEdit('name')" class="edit-icon-btn">
+                    ✏️
+                  </button>
+                </div>
+              </div>
+
+              <div class="info-row">
+                <span class="row-label">شماره موبایل:</span>
+                <div class="row-value-editable">
+                  <span v-if="!editing.phone" class="row-value phone-number">{{ user.phone_number }}</span>
+                  <input
+                      v-else
+                      v-model="editForm.phone"
+                      class="edit-input"
+                      placeholder="شماره موبایل"
+                      dir="ltr"
+                  >
+                  <button @click="toggleEdit('phone')" class="edit-icon-btn">
+                    ✏️
+                  </button>
+                </div>
+              </div>
+
+              <div class="info-row">
+                <span class="row-label">تاریخ عضویت:</span>
+                <span class="row-value">{{ formatDate(user.created) }}</span>
+              </div>
+
+              <div class="info-row">
+                <span class="row-label">آخرین ورود:</span>
+                <span class="row-value">
+                  {{ formatDate(user.last_login) }}
+                  <span class="time-badge">{{ formatTime(user.last_login) }}</span>
+                </span>
+              </div>
+            </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon">🛒</div>
-            <div class="stat-info">
-              <span class="stat-label">تعداد سفارشات</span>
-              <span class="stat-value">{{ user.order_count || 0 }} سفارش</span>
+
+          <!-- کارت رستوران و کد -->
+          <div class="info-card">
+            <div class="info-card-header">
+              <span class="card-icon">🏪</span>
+              <h5>اطلاعات رستوران</h5>
             </div>
-            <button @click="showUserOrders" class="stat-action">
-              مشاهده سفارشات
-            </button>
+            <div class="info-card-content">
+              <div class="info-row">
+                <span class="row-label">نام رستوران:</span>
+                <div class="row-value-editable">
+                  <span v-if="!editing.restaurant" class="row-value">{{ user.restaurant_name }}</span>
+                  <input
+                      v-else
+                      v-model="editForm.restaurant_name"
+                      class="edit-input"
+                      placeholder="نام رستوران"
+                  >
+                  <button @click="toggleEdit('restaurant')" class="edit-icon-btn">
+                    ✏️
+                  </button>
+                </div>
+              </div>
+
+              <div class="info-row">
+                <span class="row-label">کد کاربر:</span>
+                <div class="row-value-editable">
+                  <span v-if="!editing.code" class="row-value">{{ user.code || 'ثبت نشده' }}</span>
+                  <input
+                      v-else
+                      v-model="editForm.code"
+                      class="edit-input"
+                      placeholder="کد کاربر"
+                      dir="ltr"
+                  >
+                  <button @click="toggleEdit('code')" class="edit-icon-btn">
+                    ✏️
+                  </button>
+                </div>
+              </div>
+
+              <div class="info-row">
+                <span class="row-label">تاریخ انقضا:</span>
+                <div class="row-value-editable">
+                  <span v-if="!editing.expiry" class="row-value">{{ user.expiry ? formatDate(user.expiry) : 'ثبت نشده' }}</span>
+                  <input
+                      v-else
+                      v-model="editForm.expiry"
+                      class="edit-input"
+                      type="date"
+                      dir="ltr"
+                  >
+                  <button @click="toggleEdit('expiry')" class="edit-icon-btn">
+                    ✏️
+                  </button>
+                </div>
+              </div>
+
+              <div class="info-row" v-if="user.restaurant_id">
+                <span class="row-label">شناسه رستوران:</span>
+                <span class="row-value code-text">{{ user.restaurant_id.substring(0, 12) }}...</span>
+              </div>
+            </div>
           </div>
-          <div class="stat-card">
-            <div class="stat-icon">⭐</div>
-            <div class="stat-info">
-              <span class="stat-label">امتیاز کاربر</span>
-              <span class="stat-value">{{ user.rating || 0 }} از ۵</span>
-            </div>
-            <button @click="showUserReviews" class="stat-action">
-              مشاهده نظرات
-            </button>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">🎁</div>
-            <div class="stat-info">
-              <span class="stat-label">تخفیف ویژه</span>
-              <span class="stat-value">{{ user.special_discount || 0 }}%</span>
-            </div>
-            <button @click="editSpecialDiscount" class="stat-action">
-              ویرایش تخفیف
-            </button>
+        </div>
+
+        <!-- دکمه ذخیره تغییرات -->
+        <div v-if="hasChanges" class="save-changes-bar">
+          <span>تغییرات ذخیره نشده وجود دارد</span>
+          <div class="save-actions">
+            <button @click="cancelChanges" class="cancel-btn">لغو</button>
+            <button @click="saveChanges" class="save-btn">💾 ذخیره تغییرات</button>
           </div>
         </div>
       </div>
 
       <!-- آدرس‌ها -->
-      <div v-if="user.addresses && user.addresses.length > 0" class="addresses-section">
-        <h4>📍 آدرس‌های ثبت شده</h4>
-        <div class="addresses-list">
-          <div v-for="address in user.addresses" :key="address.id" class="address-card">
-            <div class="address-header">
-              <h5>{{ address.name || 'بدون نام' }}</h5>
-              <span :class="`address-type ${address.type}`">
-                {{ address.type_fa }}
-              </span>
-            </div>
-            <p class="address-details">{{ address.full_address }}</p>
-            <div v-if="address.location" class="address-location">
-              <span class="coordinates">
-                {{ address.location.latitude.toFixed(6) }}, {{ address.location.longitude.toFixed(6) }}
-              </span>
-              <button @click="openAddressMap(address)" class="small-map-btn">
-                مشاهده در نقشه
-              </button>
-            </div>
-            <div class="address-footer">
-              <button @click="editAddress(address)" class="address-action edit-btn">
-                ویرایش
-              </button>
-              <button @click="deleteAddress(address)" class="address-action delete-btn">
-                حذف
-              </button>
-            </div>
-          </div>
+      <div class="addresses-section">
+        <div class="section-title">
+          <span class="title-icon">📍</span>
+          <h4>آدرس‌های ثبت شده</h4>
+          <span class="address-count">{{ user.addresses?.length || 0 }} آدرس</span>
         </div>
-      </div>
 
-      <!-- یادداشت‌ها -->
-      <div class="notes-section">
-        <h4>📝 یادداشت‌ها</h4>
-        <div class="notes-container">
-          <div class="notes-list" v-if="user.notes && user.notes.length > 0">
-            <div v-for="note in user.notes" :key="note.id" class="note-item">
-              <div class="note-content">{{ note.content }}</div>
-              <div class="note-meta">
-                <span class="note-date">{{ formatDate(note.created_at) }}</span>
-                <span class="note-author">{{ note.author_name }}</span>
+        <div v-if="user.addresses && user.addresses.length > 0" class="addresses-grid">
+          <div
+              v-for="address in user.addresses"
+              :key="address.id"
+              class="address-card-modern"
+          >
+            <div class="address-card-header">
+              <div class="address-title">
+                <span class="address-icon">📍</span>
+                <h6>{{ address.name || 'آدرس' }}</h6>
+              </div>
+              <span class="address-date">
+                {{ formatDate(address.created) }}
+              </span>
+            </div>
+
+            <p class="address-detail">{{ address.detail }}</p>
+
+            <div class="address-coordinates">
+              <div class="coord-item">
+                <span class="coord-label">عرض جغرافیایی:</span>
+                <span class="coord-value">{{ address.location.latitude.toFixed(6) }}</span>
+              </div>
+              <div class="coord-item">
+                <span class="coord-label">طول جغرافیایی:</span>
+                <span class="coord-value">{{ address.location.longitude.toFixed(6) }}</span>
               </div>
             </div>
-          </div>
-          <div v-else class="no-notes">
-            <p>هیچ یادداشتی ثبت نشده است.</p>
-          </div>
-          <div class="add-note">
-            <textarea
-                v-model="newNote"
-                placeholder="یادداشت جدید..."
-                class="note-textarea"
-                rows="3"
-            ></textarea>
-            <button @click="addNote" class="add-note-btn" :disabled="!newNote.trim()">
-              افزودن یادداشت
-            </button>
+
+            <div class="address-footer">
+              <div class="address-meta">
+                <span class="meta-item">
+                  🆔 {{ address.id.substring(0, 8) }}...
+                </span>
+                <span class="meta-item">
+                  📅 {{ formatRelativeTime(address.updated) }}
+                </span>
+              </div>
+              <button @click="openAddressMap(address)" class="map-btn">
+                🗺️ مشاهده در نقشه
+              </button>
+            </div>
           </div>
         </div>
+
+        <div v-else class="no-address">
+          <div class="no-address-icon">📍</div>
+          <p>هیچ آدرسی ثبت نشده است</p>
+          <button class="add-address-btn">+ افزودن آدرس جدید</button>
+        </div>
+      </div>
+
+      <!-- دکمه‌های اقدام -->
+      <div class="action-buttons-grid">
+        <button @click="showUserOrders" class="action-button primary">
+          <span class="btn-icon">🛒</span>
+          <span class="btn-text">مشاهده سفارشات</span>
+          <span class="btn-badge">{{ user.order_count || 0 }}</span>
+        </button>
+
+        <button @click="exportUserData" class="action-button secondary">
+          <span class="btn-icon">📥</span>
+          <span class="btn-text">خروجی اطلاعات</span>
+        </button>
+
+        <button @click="sendNotification" class="action-button info">
+          <span class="btn-icon">🔔</span>
+          <span class="btn-text">ارسال نوتیفیکیشن</span>
+        </button>
+
+        <button @click="close" class="action-button close">
+          <span class="btn-icon">✕</span>
+          <span class="btn-text">بستن</span>
+        </button>
       </div>
     </div>
-
-    <!-- اسلات فوتر -->
-    <template #footer>
-      <div class="modal-actions">
-        <button @click="sendNotification" class="action-btn notify-btn" :disabled="loading">
-          🔔 ارسال نوتیفیکیشن
-        </button>
-        <button @click="exportUserData" class="action-btn export-btn" :disabled="loading">
-          📤 خروجی اطلاعات
-        </button>
-        <button @click="editUser" class="action-btn edit-btn" :disabled="loading">
-          ✏️ ویرایش کاربر
-        </button>
-        <button @click="close" class="action-btn close-btn">
-          بستن
-        </button>
-      </div>
-    </template>
+    <UserOrderList
+        v-model="showOrdersModal"
+        :user-id="selectedUserId"
+        @view-order="handleViewOrder"
+        @repeat-order="handleRepeatOrder"
+        @track-order="handleTrackOrder"
+        @close="showOrdersModal = false"
+    />
   </BaseModal>
+
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue';
 import BaseModal from '../BaseModal.vue';
 import UserApi from '@/api/user.api.js';
-
+import UserOrderList from './UserOrderList.vue';
 const props = defineProps({
   userId: {
     type: [String, Number],
@@ -262,10 +305,6 @@ const props = defineProps({
   modelValue: {
     type: Boolean,
     default: false
-  },
-  initialData: {
-    type: Object,
-    default: null
   }
 });
 
@@ -274,46 +313,91 @@ const emit = defineEmits([
   'close',
   'edit',
   'notify',
-  'show-orders',
-  'show-transactions',
-  'show-reviews',
-  'status-updated',
-  'address-selected'
+  'show-orders'
 ]);
 
 // Reactive state
 const isVisible = ref(props.modelValue);
-const user = ref(props.initialData);
+const user = ref(null);
 const loading = ref(false);
 const error = ref(null);
-const selectedStatus = ref('');
-const statusUpdating = ref(false);
-const newNote = ref('');
 
-// حروف اول نام کاربر برای آواتار
+// Edit states
+const editing = ref({
+  name: false,
+  phone: false,
+  restaurant: false,
+  code: false,
+  expiry: false
+});
+
+const editForm = ref({
+  name: '',
+  phone: '',
+  restaurant_name: '',
+  code: '',
+  expiry: ''
+});
+
+// Computed
+const modalTitle = computed(() => {
+  if (!user.value) return 'جزئیات کاربر';
+  return `👤 ${user.value.name || 'کاربر'} - ${user.value.restaurant_name}`;
+});
+
+
+
+const showOrdersModal = ref(false);
+// ✅ ذخیره موقت userId برای مودال سفارشات
+const selectedUserId = ref(null);
+
+// ✅ تابع نمایش مودال سفارشات
+const showUserOrders = () => {
+  if (!user.value?.id) return;
+  selectedUserId.value = user.value.id;
+  showOrdersModal.value = true;
+  emit('show-orders', user.value);
+};
+
+// ✅ هندلرهای رویدادهای مودال سفارشات
+const handleViewOrder = (order) => {
+  console.log('مشاهده جزئیات سفارش:', order);
+  // اینجا میتونی یه مودال دیگه برای جزئیات سفارش باز کنی
+};
+
+const handleRepeatOrder = (order) => {
+  console.log('تکرار سفارش:', order);
+  // اینجا میتونی سفارش رو دوباره ثبت کنی
+};
+
+const handleTrackOrder = (order) => {
+  console.log('پیگیری سفارش:', order);
+  // اینجا میتونی نقشه پیگیری سفارش رو باز کنی
+};
+
 const userInitials = computed(() => {
-  if (!user.value?.full_name) return '?';
-  const names = user.value.full_name.split(' ');
+  if (!user.value?.name) return '👤';
+  const names = user.value.name.split(' ');
   if (names.length >= 2) {
     return (names[0][0] + names[1][0]).toUpperCase();
   }
-  return names[0][0].toUpperCase();
+  return names[0].substring(0, 2).toUpperCase();
 });
 
-// عنوان مودال
-const modalTitle = computed(() => {
-  if (!user.value) return 'جزئیات کاربر';
-  return `مشخصات ${user.value.full_name || 'کاربر'}`;
+const hasChanges = computed(() => {
+  if (!user.value) return false;
+  return (
+      editForm.value.name !== user.value.name ||
+      editForm.value.phone !== user.value.phone_number ||
+      editForm.value.restaurant_name !== user.value.restaurant_name ||
+      editForm.value.code !== user.value.code ||
+      editForm.value.expiry !== user.value.expiry
+  );
 });
 
-// فرمت قیمت
-const formatPrice = (price) => {
-  return new Intl.NumberFormat('fa-IR').format(price);
-};
-
-// فرمت تاریخ
+// Methods
 const formatDate = (dateStr) => {
-  if (!dateStr) return '';
+  if (!dateStr) return '-';
   const date = new Date(dateStr);
   return new Intl.DateTimeFormat('fa-IR', {
     year: 'numeric',
@@ -322,7 +406,6 @@ const formatDate = (dateStr) => {
   }).format(date);
 };
 
-// فرمت زمان
 const formatTime = (dateStr) => {
   if (!dateStr) return '';
   const date = new Date(dateStr);
@@ -332,64 +415,80 @@ const formatTime = (dateStr) => {
   }).format(date);
 };
 
-// پردازش داده‌های کاربر
-const processUserData = (userData) => {
-  // ذخیره وضعیت فعلی برای select
-  selectedStatus.value = userData.status || 'active';
+const formatRelativeTime = (dateStr) => {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = now - date;
 
-  // تبدیل نقش به فارسی
-  let role_fa = '';
-  switch(userData.role) {
-    case 'admin':
-      role_fa = 'مدیر سیستم';
-      break;
-    case 'staff':
-      role_fa = 'کارمند';
-      break;
-    case 'customer':
-      role_fa = 'مشتری';
-      break;
-    case 'vendor':
-      role_fa = 'فروشنده';
-      break;
-    default:
-      role_fa = userData.role;
-  }
-
-  // تبدیل جنسیت به فارسی
-  let gender_fa = '';
-  switch(userData.gender) {
-    case 'male':
-      gender_fa = 'آقا';
-      break;
-    case 'female':
-      gender_fa = 'خانم';
-      break;
-    default:
-      gender_fa = userData.gender || 'ثبت نشده';
-  }
-
-  // پردازش آدرس‌ها
-  const addresses = (userData.addresses || []).map(addr => ({
-    ...addr,
-    type_fa: addr.type === 'home' ? 'منزل' :
-        addr.type === 'work' ? 'محل کار' :
-            addr.type === 'other' ? 'سایر' : addr.type
-  }));
-
-  return {
-    ...userData,
-    role_fa,
-    gender_fa,
-    addresses,
-    wallet_balance: userData.wallet_balance || 0,
-    order_count: userData.order_count || 0,
-    rating: userData.rating || 0,
-    special_discount: userData.special_discount || 0
-  };
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+  if (days === 0) return 'امروز';
+  if (days === 1) return 'دیروز';
+  if (days < 7) return `${days} روز پیش`;
+  return formatDate(dateStr);
 };
 
-// دریافت جزئیات کاربر از API
+const toggleEdit = (field) => {
+  if (!editing.value[field]) {
+    // Initialize edit form with current values
+    if (field === 'name') editForm.value.name = user.value.name || '';
+    if (field === 'phone') editForm.value.phone = user.value.phone_number || '';
+    if (field === 'restaurant') editForm.value.restaurant_name = user.value.restaurant_name || '';
+    if (field === 'code') editForm.value.code = user.value.code || '';
+    if (field === 'expiry') editForm.value.expiry = user.value.expiry ? user.value.expiry.split('T')[0] : '';
+  }
+  editing.value[field] = !editing.value[field];
+};
+
+const cancelChanges = () => {
+  Object.keys(editing.value).forEach(key => {
+    editing.value[key] = false;
+  });
+  // Reset form
+  if (user.value) {
+    editForm.value = {
+      name: user.value.name || '',
+      phone: user.value.phone_number || '',
+      restaurant_name: user.value.restaurant_name || '',
+      code: user.value.code || '',
+      expiry: user.value.expiry ? user.value.expiry.split('T')[0] : ''
+    };
+  }
+};
+
+const saveChanges = async () => {
+  if (!user.value || !props.userId) return;
+
+  try {
+    loading.value = true;
+
+    const updateData = {};
+    if (editing.value.name) updateData.name = editForm.value.name;
+    if (editing.value.phone) updateData.phone_number = editForm.value.phone;
+    if (editing.value.restaurant) updateData.restaurant_name = editForm.value.restaurant_name;
+    if (editing.value.code) updateData.code = editForm.value.code;
+    if (editing.value.expiry) updateData.expiry = editForm.value.expiry;
+
+    const response = await UserApi.putUpdateUser(props.userId, updateData);
+
+    // Update user data
+    user.value = {
+      ...user.value,
+      ...response.data
+    };
+
+    // Reset editing states
+    cancelChanges();
+
+    alert('✅ اطلاعات کاربر با موفقیت بروزرسانی شد');
+  } catch (err) {
+    console.error('خطا در بروزرسانی:', err);
+    alert('❌ خطا در بروزرسانی اطلاعات کاربر');
+  } finally {
+    loading.value = false;
+  }
+};
+
 const fetchUserDetails = async () => {
   if (!props.userId) {
     error.value = 'شناسه کاربر مشخص نیست';
@@ -400,8 +499,17 @@ const fetchUserDetails = async () => {
   error.value = null;
 
   try {
-    const response = await UserApi.getUser(props.userId);
-    user.value = processUserData(response.data);
+    const response = await UserApi.getCustomerDetail(props.userId);
+    user.value = response.data;
+
+    // Initialize edit form
+    editForm.value = {
+      name: user.value.name || '',
+      phone: user.value.phone_number || '',
+      restaurant_name: user.value.restaurant_name || '',
+      code: user.value.code || '',
+      expiry: user.value.expiry ? user.value.expiry.split('T')[0] : ''
+    };
   } catch (err) {
     console.error('خطا در دریافت جزئیات کاربر:', err);
     error.value = err.response?.data?.message || 'خطا در دریافت اطلاعات کاربر';
@@ -411,193 +519,29 @@ const fetchUserDetails = async () => {
   }
 };
 
-// آپدیت وضعیت کاربر
-const updateUserStatus = async () => {
-  if (!props.userId || !selectedStatus.value) {
-    return;
-  }
-
-  if (selectedStatus.value === user.value?.status) {
-    return;
-  }
-
-  statusUpdating.value = true;
-
-  try {
-    const data = {
-      status: selectedStatus.value
-    };
-
-    const response = await UserApi.updateUserStatus(props.userId, data);
-
-    // آپدیت وضعیت در state
-    selectedStatus.value = response.data.status;
-    if (user.value) {
-      user.value.status = response.data.status;
-    }
-
-    // ارسال event به parent
-    emit('status-updated', {
-      userId: props.userId,
-      newStatus: selectedStatus.value,
-      user: user.value
-    });
-
-    // نمایش پیام موفقیت
-    const statusName = selectedStatus.value === 'active' ? 'فعال' :
-        selectedStatus.value === 'inactive' ? 'غیرفعال' :
-            selectedStatus.value === 'suspended' ? 'تعلیق شده' : 'مسدود شده';
-    alert(`✅ وضعیت کاربر با موفقیت به "${statusName}" تغییر یافت.`);
-
-  } catch (err) {
-    console.error('خطا در بروزرسانی وضعیت:', err);
-
-    // بازگشت به وضعیت قبلی
-    selectedStatus.value = user.value?.status || '';
-
-    const errorMessage = err.response?.data?.message ||
-        err.response?.data?.status?.[0] ||
-        err.message ||
-        'خطا در بروزرسانی وضعیت کاربر';
-    alert(`❌ خطا: ${errorMessage}`);
-  } finally {
-    statusUpdating.value = false;
-  }
-};
-
-// تغییر آواتار
-const changeAvatar = () => {
-  // این قسمت نیاز به پیاده‌سازی آپلود فایل دارد
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = 'image/*';
-  input.onchange = async (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      // ارسال به سرور
-      try {
-        const formData = new FormData();
-        formData.append('avatar', file);
-        const response = await UserApi.updateAvatar(props.userId, formData);
-        if (response.data.avatar) {
-          user.value.avatar = response.data.avatar;
-          alert('✅ عکس پروفایل با موفقیت تغییر کرد.');
-        }
-      } catch (err) {
-        console.error('خطا در تغییر عکس:', err);
-        alert('❌ خطا در تغییر عکس پروفایل');
-      }
-    }
-  };
-  input.click();
-};
-
-// حذف آواتار
-const removeAvatar = async () => {
-  if (!confirm('آیا از حذف عکس پروفایل اطمینان دارید؟')) return;
-
-  try {
-    await UserApi.removeAvatar(props.userId);
-    user.value.avatar = null;
-    alert('✅ عکس پروفایل حذف شد.');
-  } catch (err) {
-    console.error('خطا در حذف عکس:', err);
-    alert('❌ خطا در حذف عکس پروفایل');
-  }
-};
-
-// بازکردن نقشه آدرس
 const openAddressMap = (address) => {
   if (!address?.location) return;
-  const lat = address.location.latitude;
-  const lng = address.location.longitude;
-  const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}&hl=fa`;
+  const {latitude, longitude} = address.location;
+  const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}&hl=fa`;
   window.open(mapsUrl, '_blank');
 };
 
-// افزودن یادداشت
-const addNote = async () => {
-  if (!newNote.value.trim()) return;
 
-  try {
-    const data = {
-      content: newNote.value.trim(),
-      user_id: props.userId
-    };
-
-    const response = await UserApi.addUserNote(props.userId, data);
-
-    // اضافه کردن یادداشت جدید به لیست
-    if (!user.value.notes) {
-      user.value.notes = [];
-    }
-    user.value.notes.unshift(response.data);
-
-    newNote.value = '';
-    alert('✅ یادداشت با موفقیت افزوده شد.');
-  } catch (err) {
-    console.error('خطا در افزودن یادداشت:', err);
-    alert('❌ خطا در افزودن یادداشت');
-  }
-};
-
-// مشاهده سفارشات کاربر
-const showUserOrders = () => {
-  if (!user.value) return;
-  emit('show-orders', user.value);
-};
-
-// مشاهده تراکنش‌های کیف پول
-const showWalletTransactions = () => {
-  if (!user.value) return;
-  emit('show-transactions', user.value);
-};
-
-// مشاهده نظرات کاربر
-const showUserReviews = () => {
-  if (!user.value) return;
-  emit('show-reviews', user.value);
-};
-
-// ویرایش تخفیف ویژه
-const editSpecialDiscount = () => {
-  const discount = prompt('درصد تخفیف ویژه جدید را وارد کنید:', user.value.special_discount || 0);
-  if (discount !== null) {
-    const discountNum = parseInt(discount);
-    if (!isNaN(discountNum) && discountNum >= 0 && discountNum <= 100) {
-      // ارسال به سرور
-      UserApi.updateSpecialDiscount(props.userId, { discount: discountNum })
-          .then(() => {
-            user.value.special_discount = discountNum;
-            alert('✅ تخفیف ویژه با موفقیت بروزرسانی شد.');
-          })
-          .catch(err => {
-            console.error('خطا در بروزرسانی تخفیف:', err);
-            alert('❌ خطا در بروزرسانی تخفیف');
-          });
-    } else {
-      alert('❌ درصد تخفیف باید بین ۰ تا ۱۰۰ باشد.');
-    }
-  }
-};
-
-// ویرایش کاربر
-const editUser = () => {
-  if (!user.value) return;
-  emit('edit', user.value);
-};
-
-// ارسال نوتیفیکیشن
 const sendNotification = () => {
   emit('notify', user.value);
 };
 
-// خروجی گرفتن اطلاعات کاربر
 const exportUserData = () => {
   if (!user.value) return;
 
-  const dataStr = JSON.stringify(user.value, null, 2);
-  const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+  const exportData = {
+    ...user.value,
+    export_date: new Date().toISOString(),
+    exported_by: 'admin'
+  };
+
+  const dataStr = JSON.stringify(exportData, null, 2);
+  const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
 
   const exportFileDefaultName = `user-${user.value.phone_number}-${new Date().toISOString().split('T')[0]}.json`;
 
@@ -607,27 +551,6 @@ const exportUserData = () => {
   linkElement.click();
 };
 
-// ویرایش آدرس
-const editAddress = (address) => {
-  emit('address-selected', { action: 'edit', address });
-};
-
-// حذف آدرس
-const deleteAddress = (address) => {
-  if (!confirm('آیا از حذف این آدرس اطمینان دارید؟')) return;
-
-  UserApi.deleteAddress(address.id)
-      .then(() => {
-        user.value.addresses = user.value.addresses.filter(a => a.id !== address.id);
-        alert('✅ آدرس با موفقیت حذف شد.');
-      })
-      .catch(err => {
-        console.error('خطا در حذف آدرس:', err);
-        alert('❌ خطا در حذف آدرس');
-      });
-};
-
-// بستن مودال
 const close = () => {
   isVisible.value = false;
   emit('update:modelValue', false);
@@ -635,730 +558,810 @@ const close = () => {
 };
 
 const onClose = () => {
-  // Reset state when modal closes
   setTimeout(() => {
     user.value = null;
     error.value = null;
     loading.value = false;
-    selectedStatus.value = '';
-    statusUpdating.value = false;
-    newNote.value = '';
+    cancelChanges();
   }, 300);
 };
-
-// واچر برای تغییر userId
+fetchUserDetails();
+// Watchers
 watch(() => props.userId, (newUserId) => {
   if (newUserId && isVisible.value) {
     fetchUserDetails();
   }
 });
 
-// واچر برای تغییر modelValue
 watch(() => props.modelValue, (newVal) => {
   isVisible.value = newVal;
   if (newVal && props.userId) {
-    // اگر initialData داریم، از آن استفاده می‌کنیم
-    if (props.initialData) {
-      user.value = processUserData(props.initialData);
-    } else {
-      fetchUserDetails();
-    }
+    fetchUserDetails();
   }
 });
 
-// واچر برای isVisible
 watch(isVisible, (newVal) => {
   if (!newVal && props.modelValue) {
     emit('update:modelValue', false);
   }
 });
 
-// تعریف متدهای عمومی
+// Expose methods
 defineExpose({
   open: () => {
     isVisible.value = true;
-    if (props.userId) {
-      fetchUserDetails();
-    }
+    if (props.userId) fetchUserDetails();
   },
   close,
-  fetchUserDetails,
-  updateUserStatus: (status) => {
-    selectedStatus.value = status;
-    return updateUserStatus();
-  },
-  refresh: () => {
-    if (props.userId && isVisible.value) {
-      fetchUserDetails();
-    }
-  }
+  refresh: fetchUserDetails
 });
 </script>
 
 <style scoped>
 .user-details-content {
-  padding: 4px;
+  padding: 8px;
 }
 
-/* حالت لودینگ */
+/* Loading State */
 .loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 60px 20px;
+  padding: 80px 20px;
   text-align: center;
 }
 
 .loading-state .spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #4dabf7;
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #4dabf7;
   border-radius: 50%;
   animation: spin 1s linear infinite;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
-.loading-state p {
-  color: #6c757d;
+/* User Header Card */
+.user-header-card {
+  background: linear-gradient(145deg, #ffffff, #f8f9fa);
+  border-radius: 20px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e9ecef;
+}
+
+.user-header-avatar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.avatar-large {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid #4dabf7;
+  background: #f8f9fa;
+  box-shadow: 0 8px 20px rgba(77, 171, 247, 0.2);
+}
+
+.avatar-placeholder-large {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #4dabf7, #1971c2);
+  color: white;
+  font-size: 2.5rem;
+  font-weight: bold;
+}
+
+.user-header-info {
+  flex: 1;
+}
+
+.user-header-info h2 {
+  margin: 0 0 12px 0;
+  font-size: 1.8rem;
+  color: #212529;
+  font-weight: 700;
+}
+
+.user-badges {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.restaurant-badge {
+  background: linear-gradient(135deg, #ffd43b, #fcc419);
+  color: #212529;
+  padding: 6px 16px;
+  border-radius: 30px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(255, 212, 59, 0.3);
+}
+
+.user-id-badge {
+  background: #e9ecef;
+  color: #495057;
+  padding: 6px 16px;
+  border-radius: 30px;
+  font-size: 0.85rem;
+  font-family: 'Courier New', monospace;
+}
+
+.user-contact-info {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #495057;
+}
+
+.contact-icon {
+  font-size: 1.2rem;
+}
+
+.contact-link {
+  color: #1971c2;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.contact-link:hover {
+  text-decoration: underline;
+}
+
+/* Section Title */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.title-icon {
+  font-size: 1.5rem;
+}
+
+.section-title h4 {
   margin: 0;
+  font-size: 1.2rem;
+  color: #212529;
+  font-weight: 600;
 }
 
-/* حالت خطا */
-.error-state {
-  text-align: center;
-  padding: 40px 20px;
+.address-count {
+  background: #4dabf7;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-right: auto;
 }
 
-.error-state .error-icon {
-  font-size: 3rem;
-  color: #ff6b6b;
+/* Info Cards Grid */
+.info-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.info-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.info-card:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
+  border-color: #4dabf7;
+}
+
+.info-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.card-icon {
+  font-size: 1.3rem;
+}
+
+.info-card-header h5 {
+  margin: 0;
+  font-size: 1rem;
+  color: #495057;
+  font-weight: 600;
+}
+
+.info-card-content {
+  padding: 20px;
+}
+
+.info-row {
+  display: flex;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed #e9ecef;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.row-label {
+  width: 140px;
+  font-size: 0.9rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.row-value {
+  flex: 1;
+  font-size: 0.95rem;
+  color: #212529;
+  font-weight: 500;
+}
+
+.row-value-editable {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.edit-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 2px solid #4dabf7;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.edit-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.2);
+}
+
+.edit-icon-btn {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  padding: 6px;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: all 0.2s;
+  border-radius: 6px;
+}
+
+.edit-icon-btn:hover {
+  opacity: 1;
+  background: #f1f3f5;
+}
+
+.phone-number {
+  font-family: 'Courier New', monospace;
+  direction: ltr;
+  display: inline-block;
+}
+
+.time-badge {
+  background: #e7f5ff;
+  color: #1971c2;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  margin-left: 8px;
+}
+
+.code-text {
+  font-family: 'Courier New', monospace;
+  background: #f1f3f5;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+/* Save Changes Bar */
+.save-changes-bar {
+  margin-top: 20px;
+  padding: 16px 24px;
+  background: #fff9db;
+  border: 1px solid #ffd43b;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.save-changes-bar span {
+  color: #e67700;
+  font-weight: 600;
+}
+
+.save-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.cancel-btn {
+  padding: 8px 20px;
+  border: 1px solid #ced4da;
+  background: white;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancel-btn:hover {
+  background: #f1f3f5;
+}
+
+.save-btn {
+  padding: 8px 24px;
+  background: #51cf66;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.save-btn:hover {
+  background: #40c057;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(81, 207, 102, 0.3);
+}
+
+/* Addresses Grid */
+.addresses-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.address-card-modern {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 16px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.address-card-modern:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+  border-color: #4dabf7;
+}
+
+.address-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 16px;
 }
 
+.address-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.address-icon {
+  font-size: 1.3rem;
+}
+
+.address-title h6 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #212529;
+  font-weight: 600;
+}
+
+.address-date {
+  font-size: 0.8rem;
+  color: #868e96;
+  background: #f1f3f5;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.address-detail {
+  color: #495057;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-right: 4px solid #4dabf7;
+}
+
+.address-coordinates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.coord-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.coord-label {
+  font-size: 0.75rem;
+  color: #868e96;
+}
+
+.coord-value {
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+  color: #212529;
+  font-weight: 600;
+  background: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.address-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e9ecef;
+}
+
+.address-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 0.75rem;
+  color: #868e96;
+}
+
+.meta-item {
+  background: #f1f3f5;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.map-btn {
+  background: #4dabf7;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.map-btn:hover {
+  background: #339af0;
+  transform: scale(1.05);
+}
+
+.no-address {
+  text-align: center;
+  padding: 40px;
+  background: #f8f9fa;
+  border-radius: 16px;
+  margin-top: 20px;
+}
+
+.no-address-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.no-address p {
+  color: #6c757d;
+  margin-bottom: 20px;
+}
+
+.add-address-btn {
+  background: #4dabf7;
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 30px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.add-address-btn:hover {
+  background: #339af0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(77, 171, 247, 0.4);
+}
+
+/* Action Buttons Grid */
+.action-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 2px solid #e9ecef;
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 14px 20px;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.action-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.action-button:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.btn-icon {
+  font-size: 1.2rem;
+}
+
+.btn-badge {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 8px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+}
+
+.action-button.primary {
+  background: linear-gradient(135deg, #4dabf7, #1971c2);
+  color: white;
+  box-shadow: 0 4px 15px rgba(77, 171, 247, 0.3);
+}
+
+.action-button.primary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(77, 171, 247, 0.4);
+}
+
+.action-button.secondary {
+  background: linear-gradient(135deg, #20c997, #099268);
+  color: white;
+  box-shadow: 0 4px 15px rgba(32, 201, 151, 0.3);
+}
+
+.action-button.secondary:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(32, 201, 151, 0.4);
+}
+
+.action-button.info {
+  background: linear-gradient(135deg, #ffd43b, #e67700);
+  color: white;
+  box-shadow: 0 4px 15px rgba(255, 212, 59, 0.3);
+}
+
+.action-button.info:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(255, 212, 59, 0.4);
+}
+
+.action-button.close {
+  background: linear-gradient(135deg, #868e96, #495057);
+  color: white;
+  box-shadow: 0 4px 15px rgba(134, 142, 150, 0.3);
+}
+
+.action-button.close:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(134, 142, 150, 0.4);
+}
+
+/* Error State */
+.error-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.error-state .error-icon {
+  font-size: 4rem;
+  margin-bottom: 20px;
+}
+
 .error-state h4 {
-  color: #721c24;
-  margin-bottom: 8px;
+  color: #c92a2a;
+  margin-bottom: 12px;
 }
 
 .error-state p {
-  color: #6c757d;
-  margin-bottom: 20px;
+  color: #868e96;
+  margin-bottom: 24px;
 }
 
 .retry-btn {
   background: #4dabf7;
   color: white;
   border: none;
-  padding: 8px 20px;
-  border-radius: 6px;
+  padding: 12px 32px;
+  border-radius: 30px;
+  font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 0.9rem;
+  transition: all 0.2s;
 }
 
 .retry-btn:hover {
   background: #339af0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(77, 171, 247, 0.4);
 }
 
-/* بخش آواتار */
-.avatar-section {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-  margin-bottom: 24px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.avatar-container {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
-  overflow: hidden;
-  border: 3px solid #4dabf7;
-  background: #f8f9fa;
-}
-
-.user-avatar {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.avatar-placeholder {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #4dabf7, #339af0);
-  color: white;
-  font-size: 2.5rem;
-  font-weight: bold;
-}
-
-.avatar-actions {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.avatar-btn {
-  padding: 8px 16px;
-  border-radius: 6px;
-  border: none;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.change-btn {
-  background: #51cf66;
-  color: white;
-}
-
-.change-btn:hover {
-  background: #40c057;
-}
-
-.remove-btn {
-  background: #ff6b6b;
-  color: white;
-}
-
-.remove-btn:hover {
-  background: #fa5252;
-}
-
-/* بخش‌های اطلاعات */
-.user-info-section,
-.financial-info-section,
-.addresses-section,
-.notes-section {
-  margin-bottom: 24px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #e9ecef;
-}
-
-.user-info-section:last-child,
-.financial-info-section:last-child,
-.addresses-section:last-child,
-.notes-section:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-}
-
-h4 {
-  color: #2c3e50;
-  font-size: 1.1rem;
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* گرید اطلاعات */
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 16px;
-}
-
-.info-item {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.info-label {
-  font-size: 0.85rem;
-  color: #6c757d;
-  font-weight: 500;
-}
-
-.info-value {
-  font-size: 0.95rem;
-  color: #2c3e50;
-  font-weight: 500;
-  word-break: break-word;
-}
-
-.phone-link {
-  color: #1971c2;
-  text-decoration: none;
-  font-family: 'Courier New', monospace;
-}
-
-.phone-link:hover {
-  text-decoration: underline;
-}
-
-.email-link {
-  color: #1971c2;
-  text-decoration: none;
-}
-
-.email-link:hover {
-  text-decoration: underline;
-}
-
-/* کارت‌های آمار مالی */
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 16px;
-}
-
-.stat-card {
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 10px;
-  padding: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.stat-icon {
-  font-size: 2rem;
-  width: 60px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: white;
-  border-radius: 50%;
-  border: 2px solid #dee2e6;
-}
-
-.stat-info {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.stat-label {
-  font-size: 0.85rem;
-  color: #6c757d;
-}
-
-.stat-value {
-  font-size: 1.1rem;
-  color: #2c3e50;
-  font-weight: 600;
-}
-
-.stat-action {
-  background: #4dabf7;
-  color: white;
-  border: none;
-  padding: 6px 12px;
-  border-radius: 4px;
-  font-size: 0.8rem;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.stat-action:hover {
-  background: #339af0;
-}
-
-/* لیست آدرس‌ها */
-.addresses-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 16px;
-}
-
-.address-card {
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 16px;
-  transition: all 0.2s;
-}
-
-.address-card:hover {
-  border-color: #4dabf7;
-  box-shadow: 0 2px 8px rgba(77, 171, 247, 0.1);
-}
-
-.address-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.address-header h5 {
-  margin: 0;
-  color: #2c3e50;
-  font-size: 1rem;
-}
-
-.address-type {
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-}
-
-.address-type.home {
-  background: #d1ecf1;
-  color: #0c5460;
-}
-
-.address-type.work {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.address-type.other {
-  background: #f8d7da;
-  color: #721c24;
-}
-
-.address-details {
-  color: #495057;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  margin-bottom: 12px;
-}
-
-.address-location {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  padding: 8px;
-  background: #f8f9fa;
-  border-radius: 4px;
-}
-
-.coordinates {
-  font-family: 'Courier New', monospace;
-  font-size: 0.8rem;
-  color: #6c757d;
-}
-
-.small-map-btn {
-  background: #51cf66;
-  color: white;
-  border: none;
-  padding: 4px 8px;
-  border-radius: 4px;
-  font-size: 0.75rem;
-  cursor: pointer;
-}
-
-.small-map-btn:hover {
-  background: #40c057;
-}
-
-.address-footer {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  padding-top: 12px;
-  border-top: 1px solid #e9ecef;
-}
-
-.address-action {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-
-.address-action.edit-btn {
-  background: #4dabf7;
-  color: white;
-}
-
-.address-action.edit-btn:hover {
-  background: #339af0;
-}
-
-.address-action.delete-btn {
-  background: #ff6b6b;
-  color: white;
-}
-
-.address-action.delete-btn:hover {
-  background: #fa5252;
-}
-
-/* بخش یادداشت‌ها */
-.notes-container {
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.notes-list {
-  max-height: 200px;
-  overflow-y: auto;
-  padding: 16px;
-}
-
-.note-item {
-  padding: 12px;
-  margin-bottom: 12px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  border-right: 4px solid #4dabf7;
-}
-
-.note-item:last-child {
-  margin-bottom: 0;
-}
-
-.note-content {
-  color: #495057;
-  font-size: 0.9rem;
-  line-height: 1.5;
-  margin-bottom: 8px;
-}
-
-.note-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.8rem;
-  color: #6c757d;
-}
-
-.no-notes {
-  padding: 32px;
-  text-align: center;
-  color: #6c757d;
-}
-
-.add-note {
-  padding: 16px;
-  border-top: 1px solid #e9ecef;
-  background: #f8f9fa;
-}
-
-.note-textarea {
-  width: 100%;
-  padding: 12px;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
-  font-family: inherit;
-  font-size: 0.9rem;
-  resize: vertical;
-  margin-bottom: 12px;
-}
-
-.note-textarea:focus {
-  outline: none;
-  border-color: #4dabf7;
-  box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.1);
-}
-
-.add-note-btn {
-  background: #51cf66;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  width: 100%;
-}
-
-.add-note-btn:hover:not(:disabled) {
-  background: #40c057;
-}
-
-.add-note-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-/* کنترل وضعیت */
-.status-control {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.status-select {
-  padding: 6px 12px;
-  border: 2px solid #4dabf7;
-  border-radius: 6px;
-  background-color: white;
-  font-size: 0.9rem;
-  color: #2c3e50;
-  cursor: pointer;
-  min-width: 150px;
-  transition: all 0.2s ease;
-}
-
-.status-select:focus {
-  outline: none;
-  border-color: #339af0;
-  box-shadow: 0 0 0 3px rgba(51, 154, 240, 0.1);
-}
-
-.status-select:disabled {
-  background-color: #f8f9fa;
-  border-color: #adb5bd;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.status-select:hover:not(:disabled) {
-  border-color: #339af0;
-}
-
-.status-updating {
-  font-size: 0.8rem;
-  color: #6c757d;
-  background: #f8f9fa;
-  padding: 4px 8px;
-  border-radius: 4px;
-}
-
-/* بج نقش */
-.role-badge {
-  padding: 6px 12px;
-  border-radius: 20px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  display: inline-block;
-  text-align: center;
-  min-width: 100px;
-}
-
-.role-admin {
-  background: linear-gradient(135deg, #ff6b6b, #fa5252);
-  color: white;
-}
-
-.role-staff {
-  background: linear-gradient(135deg, #4dabf7, #339af0);
-  color: white;
-}
-
-.role-customer {
-  background: linear-gradient(135deg, #51cf66, #40c057);
-  color: white;
-}
-
-.role-vendor {
-  background: linear-gradient(135deg, #ffd43b, #fcc419);
-  color: #2c3e50;
-}
-
-/* دکمه‌های اقدام */
-.modal-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.action-btn {
-  padding: 10px 20px;
-  border-radius: 6px;
-  border: none;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  transition: all 0.2s;
-}
-
-.action-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.notify-btn {
-  background-color: #ffd43b;
-  color: #2c3e50;
-}
-
-.notify-btn:hover:not(:disabled) {
-  background-color: #fcc419;
-}
-
-.export-btn {
-  background-color: #868e96;
-  color: white;
-}
-
-.export-btn:hover:not(:disabled) {
-  background-color: #6c757d;
-}
-
-.edit-btn {
-  background-color: #4dabf7;
-  color: white;
-}
-
-.edit-btn:hover:not(:disabled) {
-  background-color: #339af0;
-}
-
-.close-btn {
-  background-color: #6c757d;
-  color: white;
-}
-
-.close-btn:hover:not(:disabled) {
-  background-color: #5a6268;
-}
-
-/* ریسپانسیو */
+/* Responsive */
 @media (max-width: 768px) {
-  .info-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .avatar-section {
+  .user-header-avatar {
     flex-direction: column;
     text-align: center;
   }
 
-  .avatar-actions {
-    flex-direction: row;
+  .user-header-info h2 {
+    font-size: 1.5rem;
   }
 
-  .stats-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .addresses-list {
-    grid-template-columns: 1fr;
-  }
-
-  .modal-actions {
-    flex-direction: column;
-  }
-
-  .action-btn {
-    width: 100%;
+  .user-contact-info {
     justify-content: center;
+  }
+
+  .info-cards-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .info-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .row-label {
+    width: 100%;
+  }
+
+  .row-value-editable {
+    width: 100%;
+  }
+
+  .addresses-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .address-coordinates {
+    grid-template-columns: 1fr;
+  }
+
+  .action-buttons-grid {
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 480px) {
-  .address-location {
+  .user-header-card {
+    padding: 16px;
+  }
+
+  .avatar-large {
+    width: 80px;
+    height: 80px;
+  }
+
+  .avatar-placeholder-large {
+    font-size: 2rem;
+  }
+
+  .user-badges {
+    justify-content: center;
+  }
+
+  .user-contact-info {
     flex-direction: column;
-    gap: 8px;
-    align-items: flex-start;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .save-changes-bar {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .save-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .address-footer {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .address-meta {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .map-btn {
+    width: 100%;
+    justify-content: center;
   }
 }
 </style>

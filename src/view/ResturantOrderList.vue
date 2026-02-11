@@ -11,8 +11,8 @@
         </button>
 
         <!-- فیلتر وضعیت -->
-        <div class="filter-group">
-          <label for="status-filter">وضعیت:</label>
+        <div class="filter-group ">
+<!--          <label for="status-filter">وضعیت:</label>-->
           <select
               id="status-filter"
               v-model="filters.status"
@@ -30,7 +30,7 @@
 
         <!-- فیلتر نوع تحویل -->
         <div class="filter-group">
-          <label for="delivery-filter">نوع تحویل:</label>
+<!--          <label for="delivery-filter">نوع تحویل:</label>-->
           <select
               id="delivery-filter"
               v-model="filters.delivery"
@@ -133,8 +133,8 @@
         :show-row-number="true"
         :refreshable="false"
         :loading="isLoading"
-        :mobile-title-field="'id'"
-        :mobile-columns="['customer_phone', 'status_fa', 'total_cost_fa']"
+        :mobile-title-field="'order_number'"
+        :mobile-columns="['customer_phone', 'delivery', 'created' , 'total_cost']"
         @action="handleTableAction"
         @sort="handleSort"
         @page-change="handlePageChange"

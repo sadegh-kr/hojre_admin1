@@ -203,7 +203,7 @@
     </div>
     <UserDetailsModal
         v-if="showCustomerModal"
-        :customer-id="selectedCustomerId"
+        :userId="selectedCustomerId"
         :model-value="showCustomerModal"
         @update:model-value="closeCustomerModal"
         @close="closeCustomerModal"

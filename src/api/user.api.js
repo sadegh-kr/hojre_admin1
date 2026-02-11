@@ -11,9 +11,14 @@ class UserAPI extends BaseAPI {
         return this.get(`${this.basePath}list/`, { params })
     }
 
+    getCustomerDetail( userId = undefined , params ) {
+            return this.get(`${this.basePath}detail/${userId}`, { params })
+
+    }
+
     // جزئیات یک سفارش
-    getOrder(orderId) {
-        return this.get(`${this.basePath}detail/${orderId}/`)
+    putUpdateUser(userId , body ) {
+        return this.patch(`${this.basePath}update/${userId}/` , body)
     }
 
     // ایجاد سفارش جدید
