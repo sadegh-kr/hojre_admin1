@@ -1,9 +1,21 @@
 // src/api/BaseAPI.js
 import axios from 'axios'
 import router from '@/router'
-import { BASE_URL } from '../../config.js'
+// import { BASE_URL } from '../../config.js'
 import { useAuthStore } from '@/store/auth'
+export const getBaseUrl = () => {
+    if (window.__CONFIG__ && window.__CONFIG__.BASE_URL) {
+        return window.__CONFIG__.BASE_URL
+    }
 
+    if (import.meta.env.VITE_BASE_URL) {
+        return import.meta.env.VITE_BASE_URL
+    }
+
+    return 'http://127.0.0.1:8000/'
+}
+
+export const BASE_URL = getBaseUrl()
 class BaseAPI {
     constructor() {
         this.api = axios.create({
