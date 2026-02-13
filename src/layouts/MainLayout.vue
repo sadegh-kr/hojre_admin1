@@ -1,5 +1,5 @@
 <template>
-  <div :class="['app-container', themeClass]">
+  <div :class="['app-container', themeClass, { 'sidebar-collapsed': isSidebarCollapsed }]">
     <!-- هدر جداگانه -->
     <HeaderComponent
         :isDarkMode="isDarkMode"
@@ -10,7 +10,9 @@
     <!-- سایدبار جداگانه -->
     <SidebarComponent
         :isMobileOpen="isMobileSidebarOpen"
+        :isCollapsed="isSidebarCollapsed"
         @close-mobile-sidebar="closeMobileSidebar"
+        @sidebar-collapsed="handleSidebarCollapse"
     />
 
     <!-- محتوای اصلی -->
@@ -42,7 +44,8 @@ export default {
   data() {
     return {
       isDarkMode: localStorage.getItem("cafeHojre-theme") === "dark",
-      isMobileSidebarOpen: false
+      isMobileSidebarOpen: false,
+      isSidebarCollapsed: localStorage.getItem("cafeHojre-sidebar") === "collapsed" // اضافه شد
     }
   },
   computed: {
@@ -60,10 +63,14 @@ export default {
     },
     closeMobileSidebar() {
       this.isMobileSidebarOpen = false;
+    },
+    handleSidebarCollapse(collapsed) {
+      this.isSidebarCollapsed = collapsed;
+      localStorage.setItem("cafeHojre-sidebar", collapsed ? "collapsed" : "expanded");
     }
   },
   mounted() {
-    // اعمال تم در سطح HTML برای دسترسی بهتر CSS
+    // اعمال تم در سطح HTML
     document.documentElement.setAttribute('data-theme', this.isDarkMode ? 'dark' : 'light');
   },
   watch: {
@@ -93,6 +100,10 @@ export default {
   --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   --radius: 12px;
   --transition: all 0.3s ease;
+
+  /* عرض سایدبار */
+  --sidebar-width: 280px;
+  --sidebar-collapsed-width: 80px;
 }
 
 [data-theme="dark"] {
@@ -129,7 +140,7 @@ export default {
 .app-container {
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 250px 1fr;
+  grid-template-columns: var(--sidebar-width) 1fr;  /* استفاده از متغیر */
   grid-template-rows: auto 1fr;
   grid-template-areas:
     "header header"
@@ -138,6 +149,12 @@ export default {
   color: var(--text-color);
   font-family: 'Vazir', 'IRANSans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   position: relative;
+  transition: grid-template-columns 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* حالت بسته بودن سایدبار */
+.app-container.sidebar-collapsed {
+  grid-template-columns: var(--sidebar-collapsed-width) 1fr;
 }
 
 /* استایل‌های مربوط به تم */
@@ -156,17 +173,24 @@ export default {
   grid-area: main;
   padding: 10px;
   overflow-y: auto;
-  //max-height: calc(100vh - 80px);
+  background-color: var(--bg-color);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .content-wrapper {
-  max-width: 1200px;
+  max-width: 1400px;  /* افزایش از 1200px به 1400px */
   margin: 0 auto;
   background-color: var(--card-bg);
   border-radius: var(--radius);
   padding: 30px;
   box-shadow: var(--shadow);
   border: 1px solid var(--border-color);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* وقتی سایدبار بسته است، محتوا پهن‌تر بشه */
+.sidebar-collapsed .content-wrapper {
+  max-width: 1600px;  /* افزایش عرض */
 }
 
 /* Overlay برای موبایل */
@@ -183,8 +207,9 @@ export default {
 
 /* رسپانسیو */
 @media (max-width: 992px) {
-  .app-container {
-    grid-template-columns: 1fr;
+  .app-container,
+  .app-container.sidebar-collapsed {
+    grid-template-columns: 1fr;  /* در موبایل همیشه 1 ستونه */
     grid-template-areas:
       "header"
       "main";
@@ -197,6 +222,7 @@ export default {
 
   .content-wrapper {
     padding: 20px;
+    max-width: 100%;
   }
 
   .mobile-sidebar-overlay {

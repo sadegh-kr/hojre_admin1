@@ -10,6 +10,9 @@ class ItemAPI extends BaseAPI {
     getItemList(  params = {}) {
         return this.get(`${this.basePath}list/`, { params })
     }
+    getItemCategory(  params = {}) {
+        return this.get(`${this.basePath}list/category/`, { params })
+    }
 
 }
 
