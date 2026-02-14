@@ -319,39 +319,11 @@ export default {
           submenu: [
             {
               id: 31,
-              title: "دسته‌بندی‌ها",
-              path: "/dashboard/item-categories",
+              title: "ثبت فاکتور مشتری",
+              path: "/dashboard/item-list",
               icon: "icon-category"
-            },
-            {
-              id: 32,
-              title: "ویرایش کالاها",
-              path: "/dashboard/edit-items",
-              icon: "icon-edit",
-              badge: "۱۲"
-            },
-            {
-              id: 33,
-              title: "برچسب‌ها",
-              path: "/dashboard/item-tags",
-              icon: "icon-tag"
-            },
-            {
-              id: 34,
-              title: "انبارداری",
-              path: "/dashboard/inventory",
-              icon: "icon-warehouse",
-              badge: "کم"
             }
           ]
-        },
-        {
-          id: 4,
-          title: "سفارش‌ها",
-          path: "/dashboard/orders",
-          icon: "icon-orders",
-          badge: "۵",
-          hasSubmenu: false
         },
         {
           id: 5,
@@ -360,126 +332,6 @@ export default {
           icon: "icon-users",
           badge: "جدید",
           hasSubmenu: false
-        }
-      ],
-      managementMenu: [
-        {
-          id: 6,
-          title: "گزارش‌ها",
-          path: "/dashboard/reports",
-          icon: "icon-chart",
-          tag: "PDF",
-          tagClass: "tag-new",
-          hasSubmenu: true,
-          submenu: [
-            {
-              id: 61,
-              title: "میزان فروش",
-              path: "/dashboard/sales-report",
-              icon: "icon-sales"
-            },
-            {
-              id: 62,
-              title: "گزارش مالی",
-              path: "/dashboard/financial-report",
-              icon: "icon-wallet"
-            },
-            {
-              id: 63,
-              title: "گزارش مشتریان",
-              path: "/dashboard/customers-report",
-              icon: "icon-users"
-            },
-            {
-              id: 64,
-              title: "گزارش محصولات",
-              path: "/dashboard/products-report",
-              icon: "icon-menu"
-            }
-          ]
-        },
-        {
-          id: 7,
-          title: "مالی",
-          path: "/dashboard/finance",
-          icon: "icon-wallet",
-          tag: "۳",
-          tagClass: "tag-support",
-          hasSubmenu: false
-        },
-        {
-          id: 8,
-          title: "کارمندان",
-          path: "/dashboard/employees",
-          icon: "icon-team",
-          hasSubmenu: true,
-          submenu: [
-            {
-              id: 81,
-              title: "لیست کارمندان",
-              path: "/dashboard/employees-list",
-              icon: "icon-team"
-            },
-            {
-              id: 82,
-              title: "مدیریت دسترسی‌ها",
-              path: "/dashboard/permissions",
-              icon: "icon-shield"
-            },
-            {
-              id: 83,
-              title: "برنامه شیفتی",
-              path: "/dashboard/schedule",
-              icon: "icon-calendar"
-            },
-            {
-              id: 84,
-              title: "حضور و غیاب",
-              path: "/dashboard/attendance",
-              icon: "icon-clock"
-            }
-          ]
-        },
-        {
-          id: 9,
-          title: "تنظیمات",
-          path: "/dashboard/settings",
-          icon: "icon-settings",
-          hasSubmenu: false
-        },
-        {
-          id: 10,
-          title: "کاربران",
-          path: "/dashboard/users",
-          icon: "icon-user-management",
-          hasSubmenu: true,
-          submenu: [
-            {
-              id: 101,
-              title: "همه کاربران",
-              path: "/dashboard/users/all",
-              icon: "icon-users"
-            },
-            {
-              id: 102,
-              title: "مدیران",
-              path: "/dashboard/users/admins",
-              icon: "icon-admin"
-            },
-            {
-              id: 103,
-              title: "کاربران عادی",
-              path: "/dashboard/users/customers",
-              icon: "icon-user"
-            },
-            {
-              id: 104,
-              title: "دسترسی‌ها",
-              path: "/dashboard/users/roles",
-              icon: "icon-role",
-              badge: "جدید"
-            }
-          ]
         }
       ]
     }
