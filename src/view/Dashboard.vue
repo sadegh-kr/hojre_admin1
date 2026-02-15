@@ -1,205 +1,272 @@
 <template>
   <div class="dashboard">
     <header class="dashboard-header">
-      <h1>داشبورد مدیریت</h1>
-      <p>آمار و گزارشات عملکرد فروشگاه</p>
+      <div class="header-title">
+        <h1>داشبورد مدیریت</h1>
+        <p class="date-info">{{ period?.jalali_today }} - {{ period?.jalali_month }}</p>
+      </div>
+      <div class="header-actions">
+        <button class="refresh-btn" @click="loadDashboardData" :disabled="loading">
+          <span class="refresh-icon">⟳</span>
+          بروزرسانی
+        </button>
+      </div>
     </header>
 
     <!-- کارت‌های خلاصه امروز -->
     <div class="cards-container">
+      <!-- سفارشات امروز -->
       <div class="card card-blue">
         <div class="card-header">
           <div class="card-title">
             <p class="card-label">سفارشات امروز</p>
-            <h2 class="card-value">{{ summary?.orders || 0 }}</h2>
+            <h2 class="card-value">{{ today?.stats?.orders?.all || 0 }}</h2>
           </div>
           <div class="card-icon">
-            <svg class="icon" viewBox="0 0 24 24">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
             </svg>
           </div>
         </div>
-        <div class="card-footer" :class="(today?.orders_growth || 0) < 0 ? 'negative' : 'positive'">
-          <span v-if="today?.orders_growth !== 0 && today?.orders_growth !== undefined">
-            {{ (today?.orders_growth || 0) > 0 ? '+' : '' }}{{ today?.orders_growth || 0 }}%
+        <div class="card-stats-detail">
+          <div class="stat-row">
+            <span>آنلاین:</span>
+            <span>{{ today?.stats?.orders?.online || 0 }}</span>
+          </div>
+          <div class="stat-row">
+            <span>حضوری:</span>
+            <span>{{ today?.stats?.orders?.in_store || 0 }}</span>
+          </div>
+        </div>
+        <div class="card-footer" :class="getGrowthClass(today?.comparison?.orders?.all)">
+          <span v-if="today?.comparison?.orders?.all !== 0">
+            {{ formatGrowth(today?.comparison?.orders?.all) }} نسبت به دیروز
           </span>
-          <span v-else class="no-change">بدون تغییر</span>
-          <span>نسبت به روز قبل</span>
+          <span v-else>مشابه دیروز</span>
         </div>
       </div>
 
+      <!-- درآمد امروز -->
       <div class="card card-green">
         <div class="card-header">
           <div class="card-title">
             <p class="card-label">درآمد امروز</p>
-            <h2 class="card-value">{{ formatCurrency(summary?.revenue || 0) }}</h2>
+            <h2 class="card-value">{{ formatCurrency(today?.stats?.revenue?.all || 0) }}</h2>
           </div>
           <div class="card-icon">
-            <svg class="icon" viewBox="0 0 24 24">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
         </div>
-        <div class="card-footer" :class="(today?.revenue_growth || 0) < 0 ? 'negative' : 'positive'">
-          <span v-if="today?.revenue_growth !== 0 && today?.revenue_growth !== undefined">
-            {{ (today?.revenue_growth || 0) > 0 ? '+' : '' }}{{ today?.revenue_growth || 0 }}%
+        <div class="card-stats-detail">
+          <div class="stat-row">
+            <span>آنلاین:</span>
+            <span>{{ formatCurrency(today?.stats?.revenue?.online || 0) }}</span>
+          </div>
+          <div class="stat-row">
+            <span>حضوری:</span>
+            <span>{{ formatCurrency(today?.stats?.revenue?.in_store || 0) }}</span>
+          </div>
+        </div>
+        <div class="card-footer" :class="getGrowthClass(today?.comparison?.revenue?.all)">
+          <span v-if="today?.comparison?.revenue?.all !== 0">
+            {{ formatGrowth(today?.comparison?.revenue?.all) }} نسبت به دیروز
           </span>
-          <span v-else class="no-change">بدون تغییر</span>
-          <span>نسبت به روز قبل</span>
+          <span v-else>مشابه دیروز</span>
         </div>
       </div>
 
+      <!-- سفارشات ماه -->
       <div class="card card-purple">
         <div class="card-header">
           <div class="card-title">
-            <p class="card-label">تحویل شده</p>
-            <h2 class="card-value">{{ summary?.delivered || 0 }}</h2>
+            <p class="card-label">سفارشات ماه</p>
+            <h2 class="card-value">{{ monthly?.stats?.total_orders || 0 }}</h2>
           </div>
           <div class="card-icon">
-            <svg class="icon" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
           </div>
         </div>
+        <div class="card-stats-detail">
+          <div class="stat-row">
+            <span>تحویل شده:</span>
+            <span>{{ monthly?.stats?.delivered_orders || 0 }}</span>
+          </div>
+          <div class="stat-row">
+            <span>درآمد:</span>
+            <span>{{ formatCurrency(monthly?.stats?.total_revenue || 0) }}</span>
+          </div>
+        </div>
         <div class="card-detail">
-          <span>میانگین زمان سفارش: {{ summary?.avg_order_time || 0 }} دقیقه</span>
+          میانگین روزانه: {{ formatCurrency(monthly?.stats?.average_daily || 0) }}
         </div>
       </div>
 
+      <!-- آمار کلی -->
       <div class="card card-yellow">
         <div class="card-header">
           <div class="card-title">
-            <p class="card-label">مشتریان جدید</p>
-            <h2 class="card-value">{{ summary?.new_customers || 0 }}</h2>
+            <p class="card-label">کل درآمد</p>
+            <h2 class="card-value">{{ formatCurrency(total_stats?.revenue?.all || 0) }}</h2>
           </div>
           <div class="card-icon">
-            <svg class="icon" viewBox="0 0 24 24">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
           </div>
         </div>
+        <div class="card-stats-detail">
+          <div class="stat-row">
+            <span>آنلاین:</span>
+            <span>{{ formatCurrency(total_stats?.revenue?.online || 0) }} ({{ total_stats?.revenue?.online_percentage || 0 }}%)</span>
+          </div>
+          <div class="stat-row">
+            <span>حضوری:</span>
+            <span>{{ formatCurrency(total_stats?.revenue?.in_store || 0) }} ({{ total_stats?.revenue?.in_store_percentage || 0 }}%)</span>
+          </div>
+        </div>
         <div class="card-detail">
-          <span>مجموع مشتریان: {{ overview?.total_customers || 0 }}</span>
+          میانگین ارزش: {{ formatCurrency(total_stats?.average_order_value?.all || 0) }}
         </div>
       </div>
     </div>
 
-    <!-- ردیف دوم: نمودارها و آمار -->
+    <!-- ساعت‌های شلوغ -->
+    <div class="section-header">
+      <h2>⏰ ساعت‌های شلوغ</h2>
+      <p>تعداد سفارش در هر ساعت (از اول ماه)</p>
+    </div>
+    <div class="hours-grid">
+      <div v-for="hour in hourly" :key="hour.hour" class="hour-card" :class="{ 'peak-hour': hour.orders.all > getAverageOrders() }">
+        <div class="hour-time">{{ hour.hour_display }}</div>
+        <div class="hour-stats">
+          <div class="hour-stat">
+            <span class="stat-label">کل:</span>
+            <span class="stat-value">{{ hour.orders.all }}</span>
+          </div>
+          <div class="hour-stat online">
+            <span class="stat-label">آنلاین:</span>
+            <span class="stat-value">{{ hour.orders.online }}</span>
+          </div>
+          <div class="hour-stat in-store">
+            <span class="stat-label">حضوری:</span>
+            <span class="stat-value">{{ hour.orders.in_store }}</span>
+          </div>
+        </div>
+        <div class="hour-bar">
+          <div class="bar-fill" :style="{ width: getHourPercentage(hour.orders.all) + '%' }"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- دو ستون: آیتم‌های پرفروش و وضعیت سفارشات -->
     <div class="row">
+      <!-- آیتم‌های پرفروش -->
       <div class="chart-container">
         <div class="chart-card">
-          <h3>سفارشات ۷ روز گذشته</h3>
-          <div class="chart">
-            <div v-if="charts?.last_7_days_orders && charts.last_7_days_orders.length > 0" class="bars-container">
-              <div v-for="(day, index) in charts.last_7_days_orders"
-                   :key="index"
-                   class="bar-wrapper">
-                <div class="bar-label">{{ day.date_display }}</div>
-                <div class="bar-container">
-                  <div class="bar"
-                       :style="{
-                         height: maxOrders > 0 ? (day.total / maxOrders * 100) + '%' : '0%',
-                         minHeight: '4px'
-                       }"></div>
+          <h3>🔥 آیتم‌های پرفروش</h3>
+          <div class="tabs">
+            <button class="tab-btn" :class="{ active: activeTopItemsTab === 'all' }" @click="activeTopItemsTab = 'all'">همه</button>
+            <button class="tab-btn" :class="{ active: activeTopItemsTab === 'online' }" @click="activeTopItemsTab = 'online'">آنلاین</button>
+            <button class="tab-btn" :class="{ active: activeTopItemsTab === 'in_store' }" @click="activeTopItemsTab = 'in_store'">حضوری</button>
+          </div>
+          <div class="items-list">
+            <div v-if="topItemsByTab.length > 0">
+              <div v-for="(item, index) in topItemsByTab" :key="index" class="item-row">
+                <div class="item-rank">{{ index + 1 }}</div>
+                <div class="item-info">
+                  <p class="item-name">{{ item.name }}</p>
+                  <p class="item-quantity">{{ item.quantity }} عدد</p>
                 </div>
-                <div class="bar-value">{{ day.total }}</div>
+                <div class="item-revenue">{{ formatCurrency(item.revenue || 0) }}</div>
               </div>
             </div>
-            <div v-else class="no-data">
-              داده‌ای برای نمایش وجود ندارد
-            </div>
+            <div v-else class="no-data">آیتمی یافت نشد</div>
           </div>
         </div>
       </div>
 
+      <!-- وضعیت سفارشات -->
       <div class="stats-container">
         <div class="stats-card">
-          <h3>آمار کلی</h3>
-          <div class="stats-list">
-            <div class="stat-item">
-              <span class="stat-label">کل سفارشات</span>
-              <span class="stat-value">{{ overview?.total_orders || 0 }}</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">کل درآمد</span>
-              <span class="stat-value">{{ formatCurrency(overview?.total_revenue || 0) }}</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">میانگین ارزش سفارش</span>
-              <span class="stat-value">{{ formatCurrency(overview?.avg_order_value || 0) }}</span>
-            </div>
-            <div class="stat-item">
-              <span class="stat-label">موجودی کیف پول کل</span>
-              <span class="stat-value">{{ formatCurrency(overview?.total_wallet_balance || 0) }}</span>
+          <h3>📊 وضعیت سفارشات</h3>
+          <div class="tabs">
+            <button class="tab-btn" :class="{ active: activeStatusTab === 'all' }" @click="activeStatusTab = 'all'">همه</button>
+            <button class="tab-btn" :class="{ active: activeStatusTab === 'online' }" @click="activeStatusTab = 'online'">آنلاین</button>
+            <button class="tab-btn" :class="{ active: activeStatusTab === 'in_store' }" @click="activeStatusTab = 'in_store'">حضوری</button>
+          </div>
+          <div class="status-list">
+            <div v-for="(status, key) in currentStatusStats" :key="key" class="status-item">
+              <div class="status-header">
+                <span class="status-name">{{ getStatusName(key) }}</span>
+                <span class="status-count">{{ status.count }}</span>
+              </div>
+              <div class="status-bar">
+                <div class="status-fill" :class="`status-${key}`" :style="{ width: status.percentage + '%' }"></div>
+              </div>
+              <div class="status-footer">
+                <span class="status-percentage">{{ status.percentage }}%</span>
+                <span class="status-revenue">{{ formatCurrency(status.revenue || 0) }}</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ردیف سوم: لیست برترین‌ها -->
-    <div class="row">
-      <div class="list-container">
-        <div class="list-card">
-          <h3>برترین مشتریان (بر اساس سفارش)</h3>
-          <div class="list-content">
-            <div v-if="top_lists?.customers_by_orders && top_lists.customers_by_orders.length > 0">
-              <div v-for="(customer, index) in top_lists.customers_by_orders"
-                   :key="customer.id"
-                   class="customer-item">
-                <div class="customer-info">
-                  <div class="customer-rank">{{ index + 1 }}</div>
-                  <div class="customer-details">
-                    <p class="customer-name">{{ customer.name || 'نامشخص' }}</p>
-                    <p class="customer-phone">{{ customer.phone }}</p>
-                  </div>
-                </div>
-                <div class="customer-stats">
-                  <p class="customer-orders">{{ customer.delivered_orders || 0 }} سفارش</p>
-                  <p class="customer-spent">{{ formatCurrency(customer.total_spent || 0) }}</p>
-                </div>
+    <!-- برترین مشتریان -->
+    <div class="section-header">
+      <h2>👑 برترین مشتریان</h2>
+    </div>
+    <div class="customers-grid">
+      <!-- آنلاین -->
+      <div class="customers-card">
+        <h4>سفارش آنلاین</h4>
+        <div class="customers-list">
+          <div v-if="top_customers?.online?.length > 0">
+            <div v-for="(customer, index) in top_customers.online" :key="customer.id" class="customer-item">
+              <div class="customer-rank">{{ index + 1 }}</div>
+              <div class="customer-info">
+                <p class="customer-name">{{ customer.name }}</p>
+                <p class="customer-phone">{{ customer.phone }}</p>
+              </div>
+              <div class="customer-stats">
+                <p class="customer-orders">{{ customer.orders }} سفارش</p>
+                <p class="customer-spent">{{ formatCurrency(customer.spent) }}</p>
               </div>
             </div>
-            <div v-else class="no-data">
-              داده‌ای برای نمایش وجود ندارد
-            </div>
           </div>
+          <div v-else class="no-data">مشتری آنلاین ندارد</div>
         </div>
       </div>
 
-      <div class="list-container">
-        <div class="list-card">
-          <h3>برترین موجودی‌های کیف پول</h3>
-          <div class="list-content">
-            <div v-if="top_lists?.customers_by_wallet && top_lists.customers_by_wallet.length > 0">
-              <div v-for="(customer, index) in top_lists.customers_by_wallet.slice(0, 5)"
-                   :key="customer.id"
-                   class="customer-item">
-                <div class="customer-info">
-                  <div class="customer-rank wallet-rank">{{ index + 1 }}</div>
-                  <div class="customer-details">
-                    <p class="customer-name">{{ customer.name || 'نامشخص' }}</p>
-                    <p class="customer-phone">{{ customer.phone }}</p>
-                  </div>
-                </div>
-                <div class="customer-stats">
-                  <p class="customer-balance">{{ formatCurrency(customer.wallet_balance || 0) }}</p>
-                  <p class="customer-orders-small">{{ customer.total_orders || 0 }} سفارش</p>
-                </div>
+      <!-- حضوری -->
+      <div class="customers-card">
+        <h4>سفارش حضوری</h4>
+        <div class="customers-list">
+          <div v-if="top_customers?.in_store?.length > 0">
+            <div v-for="(customer, index) in top_customers.in_store" :key="customer.id" class="customer-item">
+              <div class="customer-rank in-store">{{ index + 1 }}</div>
+              <div class="customer-info">
+                <p class="customer-name">{{ customer.name }}</p>
+                <p class="customer-phone">{{ customer.phone }}</p>
+              </div>
+              <div class="customer-stats">
+                <p class="customer-orders">{{ customer.orders }} سفارش</p>
+                <p class="customer-spent">{{ formatCurrency(customer.spent) }}</p>
               </div>
             </div>
-            <div v-else class="no-data">
-              داده‌ای برای نمایش وجود ندارد
-            </div>
           </div>
+          <div v-else class="no-data">مشتری حضوری ندارد</div>
         </div>
       </div>
     </div>
 
-    <!-- فوت -->
     <footer class="dashboard-footer">
-      <p>آخرین بروزرسانی: {{ formatDate(meta?.generated_at) }}</p>
-      <p>منطقه زمانی: {{ meta?.timezone || 'Asia/Tehran' }}</p>
+      <p>آخرین بروزرسانی: {{ meta?.jalali_generated_at }}</p>
     </footer>
   </div>
 </template>
@@ -212,17 +279,32 @@ export default {
 
   data() {
     return {
-      overview: {},
-      today: {},
-      summary: {},
-      period_stats: {},
-      top_lists: {},
-      charts: {},
-      distributions: {},
-      meta: {},
-      maxOrders: 0,
       loading: true,
-      error: null
+      error: null,
+      period: null,
+      total_stats: null,
+      today: null,
+      weekly: null,
+      monthly: null,
+      hourly: [],
+      top_items: null,
+      top_customers: null,
+      order_status: null,
+      meta: null,
+      activeTopItemsTab: 'all',
+      activeStatusTab: 'all'
+    }
+  },
+
+  computed: {
+    topItemsByTab() {
+      if (!this.top_items) return []
+      return this.top_items[this.activeTopItemsTab] || []
+    },
+
+    currentStatusStats() {
+      if (!this.order_status) return {}
+      return this.order_status[this.activeStatusTab] || {}
     }
   },
 
@@ -239,18 +321,16 @@ export default {
         const response = await DashboardAPI.dashboard()
         const data = response?.data || response || {}
 
-        this.overview = data.overview || {}
-        this.today = data.today || {}
-        this.summary = data.summary || {}
-        this.period_stats = data.period_stats || {}
-        this.top_lists = data.top_lists || {}
-        this.charts = data.charts || {}
-        this.distributions = data.distributions || {}
-        this.meta = data.meta || {}
-
-        if (this.charts?.last_7_days_orders && this.charts.last_7_days_orders.length > 0) {
-          this.maxOrders = Math.max(...this.charts.last_7_days_orders.map(d => d.total || 0))
-        }
+        this.period = data.period || null
+        this.total_stats = data.total_stats || null
+        this.today = data.today || null
+        this.weekly = data.weekly || null
+        this.monthly = data.monthly || null
+        this.hourly = data.hourly || []
+        this.top_items = data.top_items || null
+        this.top_customers = data.top_customers || null
+        this.order_status = data.order_status || null
+        this.meta = data.meta || null
 
       } catch (error) {
         console.error('Error loading dashboard data:', error)
@@ -261,355 +341,485 @@ export default {
     },
 
     formatCurrency(value) {
-      if (!value && value !== 0) return '۰ ریال'
-      return new Intl.NumberFormat('fa-IR').format(value) + ' ریال'
+      if (!value && value !== 0) return '۰ تومان'
+      return new Intl.NumberFormat('fa-IR').format(value) + ' تومان'
     },
 
-    formatDate(dateString) {
-      if (!dateString) return 'نامشخص'
-      try {
-        const date = new Date(dateString)
-        return new Intl.DateTimeFormat('fa-IR', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
-        }).format(date)
-      } catch (error) {
-        return 'فرمت تاریخ نامعتبر'
+    formatGrowth(value) {
+      if (value > 0) return `+${value}%`
+      return `${value}%`
+    },
+
+    getGrowthClass(value) {
+      if (value > 0) return 'positive'
+      if (value < 0) return 'negative'
+      return ''
+    },
+
+    getAverageOrders() {
+      if (!this.hourly || this.hourly.length === 0) return 0
+      const total = this.hourly.reduce((sum, h) => sum + (h.orders.all || 0), 0)
+      return total / this.hourly.length
+    },
+
+    getHourPercentage(count) {
+      const maxOrders = Math.max(...this.hourly.map(h => h.orders.all || 0))
+      if (maxOrders === 0) return 0
+      return (count / maxOrders) * 100
+    },
+
+    getStatusName(key) {
+      const names = {
+        'pending': 'در انتظار',
+        'prep': 'در حال آماده‌سازی',
+        'send': 'در حال ارسال',
+        'deliver': 'تحویل شده',
+        'cancel': 'لغو شده'
       }
+      return names[key] || key
     }
   }
 }
 </script>
 
 <style scoped>
-/* متغیرها */
-:root {
-  --primary-color: #3b82f6;
-  --secondary-color: #10b981;
-  --accent-color: #8b5cf6;
-  --warning-color: #f59e0b;
-  --danger-color: #ef4444;
-  --light-color: #f9fafb;
-  --dark-color: #1f2937;
-  --gray-light: #e5e7eb;
-  --gray-medium: #9ca3af;
-  --gray-dark: #6b7280;
-  --border-radius: 12px;
-  --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --transition: all 0.3s ease;
-}
-
-/* استایل کلی داشبورد */
 .dashboard {
   padding: 24px;
-  background-color: var(--light-color);
+  background-color: #f5f7fa;
   min-height: 100vh;
-  font-family: 'Vazir', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   direction: rtl;
 }
 
 .dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 32px;
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
-.dashboard-header h1 {
+.header-title h1 {
   font-size: 28px;
   font-weight: 700;
-  color: var(--dark-color);
+  color: #2c3e50;
+  margin: 0 0 8px 0;
+}
+
+.date-info {
+  font-size: 14px;
+  color: #6b7280;
   margin: 0;
 }
 
-.dashboard-header p {
-  font-size: 16px;
-  color: var(--gray-dark);
-  margin-top: 8px;
+.refresh-btn {
+  background-color: #3b82f6;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s;
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background-color: #2563eb;
+  transform: translateY(-2px);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.refresh-icon {
+  font-size: 18px;
 }
 
 /* کارت‌ها */
 .cards-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 20px;
   margin-bottom: 32px;
 }
 
 .card {
-  background-color: white;
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
+  background: white;
+  border-radius: 16px;
   padding: 24px;
-  border-right: 4px solid;
-  transition: var(--transition);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s;
+  border-top: 4px solid;
 }
 
 .card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
-.card-blue {
-  border-color: var(--primary-color);
-}
-
-.card-green {
-  border-color: var(--secondary-color);
-}
-
-.card-purple {
-  border-color: var(--accent-color);
-}
-
-.card-yellow {
-  border-color: var(--warning-color);
-}
+.card-blue { border-color: #3b82f6; }
+.card-green { border-color: #10b981; }
+.card-purple { border-color: #8b5cf6; }
+.card-yellow { border-color: #f59e0b; }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .card-title .card-label {
   font-size: 14px;
-  color: var(--gray-dark);
+  color: #6b7280;
   margin: 0 0 8px 0;
 }
 
 .card-title .card-value {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 700;
-  color: var(--dark-color);
+  color: #2c3e50;
   margin: 0;
 }
 
 .card-icon {
   padding: 12px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.card-blue .card-icon {
+  border-radius: 12px;
   background-color: rgba(59, 130, 246, 0.1);
 }
 
-.card-green .card-icon {
-  background-color: rgba(16, 185, 129, 0.1);
-}
-
-.card-purple .card-icon {
-  background-color: rgba(139, 92, 246, 0.1);
-}
-
-.card-yellow .card-icon {
-  background-color: rgba(245, 158, 11, 0.1);
-}
+.card-blue .card-icon { background-color: rgba(59, 130, 246, 0.1); }
+.card-green .card-icon { background-color: rgba(16, 185, 129, 0.1); }
+.card-purple .card-icon { background-color: rgba(139, 92, 246, 0.1); }
+.card-yellow .card-icon { background-color: rgba(245, 158, 11, 0.1); }
 
 .icon {
   width: 24px;
   height: 24px;
 }
 
-.card-blue .icon {
-  stroke: var(--primary-color);
+.card-blue .icon { stroke: #3b82f6; }
+.card-green .icon { stroke: #10b981; }
+.card-purple .icon { stroke: #8b5cf6; }
+.card-yellow .icon { stroke: #f59e0b; }
+
+.card-stats-detail {
+  margin: 16px 0;
+  padding: 16px 0;
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.card-green .icon {
-  stroke: var(--secondary-color);
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
 }
 
-.card-purple .icon {
-  stroke: var(--accent-color);
+.stat-row:last-child {
+  margin-bottom: 0;
 }
 
-.card-yellow .icon {
-  stroke: var(--warning-color);
+.stat-row span:first-child {
+  color: #6b7280;
+}
+
+.stat-row span:last-child {
+  font-weight: 600;
+  color: #2c3e50;
 }
 
 .card-footer {
   font-size: 14px;
-  display: flex;
-  gap: 4px;
+  margin-top: 12px;
 }
 
-.card-footer.positive {
-  color: var(--secondary-color);
-}
-
-.card-footer.negative {
-  color: var(--danger-color);
-}
-
-.card-footer .no-change {
-  color: var(--gray-medium);
-}
+.card-footer.positive { color: #10b981; }
+.card-footer.negative { color: #ef4444; }
 
 .card-detail {
   font-size: 14px;
-  color: var(--gray-dark);
-  margin-top: 16px;
+  color: #6b7280;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
 }
 
-/* ردیف‌ها */
-.row {
+/* ساعت‌های شلوغ */
+.section-header {
+  margin: 32px 0 20px;
+}
+
+.section-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 8px 0;
+}
+
+.section-header p {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.hours-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
   margin-bottom: 32px;
 }
 
-@media (min-width: 1024px) {
-  .row {
-    grid-template-columns: 1fr 1fr;
-  }
+.hour-card {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e5e7eb;
+  transition: all 0.3s;
 }
 
-/* نمودار */
-.chart-card,
-.stats-card,
-.list-card {
-  background-color: white;
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
-  padding: 24px;
-  height: 100%;
+.hour-card.peak-hour {
+  border-color: #f59e0b;
+  background-color: #fff7ed;
 }
 
-.chart-card h3,
-.stats-card h3,
-.list-card h3 {
-  font-size: 18px;
+.hour-time {
+  font-size: 14px;
   font-weight: 600;
-  color: var(--dark-color);
-  margin: 0 0 24px 0;
+  color: #2c3e50;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.chart {
-  height: 300px;
-  display: flex;
-  align-items: center;
+.hour-stats {
+  margin-bottom: 12px;
 }
 
-.bars-container {
+.hour-stat {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
-  width: 100%;
-  height: 200px;
-  gap: 8px;
-}
-
-.bar-wrapper {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  height: 100%;
-}
-
-.bar-label {
   font-size: 12px;
-  color: var(--gray-dark);
+  margin-bottom: 4px;
+}
+
+.hour-stat .stat-label {
+  color: #6b7280;
+}
+
+.hour-stat .stat-value {
+  font-weight: 600;
+}
+
+.hour-stat.online .stat-value { color: #3b82f6; }
+.hour-stat.in-store .stat-value { color: #10b981; }
+
+.hour-bar {
+  height: 4px;
+  background-color: #e5e7eb;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background-color: #3b82f6;
+  transition: width 0.3s;
+}
+
+/* تب‌ها */
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.tab-btn {
+  padding: 8px 16px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.tab-btn:hover {
+  background-color: #f3f4f6;
+}
+
+.tab-btn.active {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+/* آیتم‌ها */
+.items-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.item-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.item-row:hover {
+  background-color: #f9fafb;
+}
+
+.item-rank {
+  width: 28px;
+  height: 28px;
+  background-color: #f3f4f6;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.item-info {
+  flex: 1;
+}
+
+.item-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 4px 0;
+}
+
+.item-quantity {
+  font-size: 12px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.item-revenue {
+  font-size: 14px;
+  font-weight: 600;
+  color: #10b981;
+}
+
+/* وضعیت سفارشات */
+.status-list {
+  margin-top: 16px;
+}
+
+.status-item {
+  margin-bottom: 20px;
+}
+
+.status-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.status-name {
+  color: #6b7280;
+}
+
+.status-count {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.status-bar {
+  height: 8px;
+  background-color: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
   margin-bottom: 8px;
 }
 
-.bar-container {
-  flex: 1;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
+.status-fill {
+  height: 100%;
+  transition: width 0.3s;
 }
 
-.bar {
-  width: 32px;
-  background-color: var(--primary-color);
-  border-radius: 4px 4px 0 0;
-  min-height: 4px;
-  transition: var(--transition);
-}
+.status-fill.status-pending { background-color: #f59e0b; }
+.status-fill.status-prep { background-color: #3b82f6; }
+.status-fill.status-send { background-color: #8b5cf6; }
+.status-fill.status-deliver { background-color: #10b981; }
+.status-fill.status-cancel { background-color: #ef4444; }
 
-.bar:hover {
-  background-color: #2563eb;
-}
-
-.bar-value {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--dark-color);
-  margin-top: 8px;
-}
-
-/* آمار */
-.stats-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.stat-item {
+.status-footer {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 16px;
-  background-color: rgba(249, 250, 251, 0.8);
-  border-radius: 8px;
-  transition: var(--transition);
+  font-size: 12px;
 }
 
-.stat-item:hover {
-  background-color: var(--gray-light);
+.status-percentage {
+  color: #6b7280;
 }
 
-.stat-label {
-  font-size: 14px;
-  color: var(--gray-dark);
+.status-revenue {
+  font-weight: 600;
+  color: #10b981;
 }
 
-.stat-value {
+/* مشتریان */
+.customers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
+}
+
+.customers-card {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.customers-card h4 {
   font-size: 16px;
   font-weight: 600;
-  color: var(--dark-color);
+  color: #2c3e50;
+  margin: 0 0 20px 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #e5e7eb;
 }
 
-/* لیست مشتریان */
-.list-content {
-  min-height: 300px;
+.customers-list {
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .customer-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 16px;
-  background-color: white;
-  border: 1px solid var(--gray-light);
-  border-radius: 8px;
-  margin-bottom: 12px;
-  transition: var(--transition);
+  gap: 12px;
+  padding: 12px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .customer-item:hover {
-  background-color: rgba(249, 250, 251, 0.8);
-  border-color: var(--gray-medium);
-}
-
-.customer-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  background-color: #f9fafb;
 }
 
 .customer-rank {
   width: 32px;
   height: 32px;
-  background-color: rgba(59, 130, 246, 0.1);
-  color: var(--primary-color);
+  background-color: #3b82f6;
+  color: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -618,126 +828,93 @@ export default {
   font-size: 14px;
 }
 
-.wallet-rank {
-  background-color: rgba(16, 185, 129, 0.1);
-  color: var(--secondary-color);
+.customer-rank.in-store {
+  background-color: #10b981;
 }
 
-.customer-details {
-  display: flex;
-  flex-direction: column;
+.customer-info {
+  flex: 1;
 }
 
 .customer-name {
   font-size: 14px;
   font-weight: 600;
-  color: var(--dark-color);
-  margin: 0;
+  color: #2c3e50;
+  margin: 0 0 4px 0;
 }
 
 .customer-phone {
   font-size: 12px;
-  color: var(--gray-dark);
-  margin: 4px 0 0 0;
+  color: #6b7280;
+  margin: 0;
 }
 
 .customer-stats {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
   text-align: left;
 }
 
-.customer-orders,
-.customer-balance {
+.customer-orders {
   font-size: 14px;
   font-weight: 600;
-  color: var(--dark-color);
+  color: #2c3e50;
   margin: 0 0 4px 0;
 }
 
-.customer-spent,
-.customer-orders-small {
+.customer-spent {
   font-size: 12px;
-  color: var(--gray-dark);
+  color: #10b981;
   margin: 0;
+}
+
+/* ردیف‌ها */
+.row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.chart-card,
+.stats-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  height: fit-content;
+}
+
+.chart-card h3,
+.stats-card h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 20px 0;
+}
+
+/* فوتر */
+.dashboard-footer {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 2px solid #e5e7eb;
+  text-align: center;
+  color: #6b7280;
+  font-size: 14px;
 }
 
 /* حالت‌های خالی */
 .no-data {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 200px;
-  color: var(--gray-medium);
-  font-size: 14px;
-}
-
-/* فوت */
-.dashboard-footer {
-  margin-top: 32px;
-  padding-top: 24px;
-  border-top: 1px solid var(--gray-light);
+  padding: 40px;
   text-align: center;
-  color: var(--gray-dark);
+  color: #9ca3af;
   font-size: 14px;
-}
-
-.dashboard-footer p {
-  margin: 8px 0;
 }
 
 /* لودینگ */
 .loading-spinner {
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  height: 100vh;
-}
-
-.spinner {
-  width: 48px;
-  height: 48px;
-  border: 4px solid var(--gray-light);
-  border-top-color: var(--primary-color);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-.error-container {
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
   height: 100vh;
-}
-
-.error-message {
-  color: var(--danger-color);
-  font-size: 18px;
-  margin-bottom: 20px;
-}
-
-.retry-button {
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: var(--transition);
-}
-
-.retry-button:hover {
-  background-color: #2563eb;
 }
 
 /* ریسپانسیو */
@@ -746,28 +923,25 @@ export default {
     padding: 16px;
   }
 
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
   .cards-container {
     grid-template-columns: 1fr;
   }
 
-  .card {
-    padding: 20px;
+  .hours-grid {
+    grid-template-columns: 1fr;
   }
 
-  .chart-card,
-  .stats-card,
-  .list-card {
-    padding: 20px;
+  .row {
+    grid-template-columns: 1fr;
   }
 
-  .customer-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
-  .customer-stats {
-    align-items: flex-start;
+  .customers-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>
