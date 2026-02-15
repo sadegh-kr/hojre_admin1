@@ -33,8 +33,11 @@
             <div class="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
               <i class="fas fa-mug-hot text-amber-300"></i>
               <span class="font-bold text-white">کافه حجره</span>
-              <span class="text-xs bg-amber-600/30 px-2 py-1 rounded-full text-white !p-1">v1.0.0</span>
+
+
+              <span class="text-xs bg-amber-600/30 px-2 py-1 rounded-full text-white !p-1"> Development & Maintenance | Supervised by Hossein Kooshkian v1.0.0</span>
             </div>
+
           </div>
         </div>
       </div>
