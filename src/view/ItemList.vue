@@ -15,7 +15,7 @@ const categoryData = ref(null)
 const searchQuery = ref('')
 const selectedCategory = ref('')
 const categorySearchQuery = ref('')
-const showCategoryFilter = ref(false) // برای نمایش/مخفی کردن فیلتر دسته‌بندی
+const showCategoryFilter = ref(false)
 
 // ========== صفحه‌بندی ==========
 const currentPage = ref(1)
@@ -52,7 +52,7 @@ watch(categorySearchQuery, () => {
   fetchCategories()
 })
 
-// ========== دریافت محصولات با ارسال آیدی دسته‌بندی ==========
+// ========== دریافت محصولات ==========
 const fetchItems = async () => {
   try {
     loading.value = true
@@ -67,10 +67,8 @@ const fetchItems = async () => {
       params.search = searchQuery.value
     }
 
-    // ارسال آیدی دسته‌بندی به API
     if (selectedCategory.value) {
-      params.category_id = selectedCategory.value // تغییر از category به category_id
-      console.log('Sending category_id:', selectedCategory.value) // برای دیباگ
+      params.category_id = selectedCategory.value
     }
 
     const response = await itemApi.getItemList(params)
@@ -135,11 +133,10 @@ const clearInvoice = () => {
 // ========== انتخاب دسته‌بندی ==========
 const selectCategory = (categoryId) => {
   if (selectedCategory.value === categoryId) {
-    selectedCategory.value = '' // پاک کردن فیلتر
+    selectedCategory.value = ''
   } else {
     selectedCategory.value = categoryId
   }
-  // بستن منوی دسته‌بندی بعد از انتخاب
   showCategoryFilter.value = false
 }
 
@@ -177,11 +174,9 @@ const prevCategoryPage = () => {
 const selectedCategoryName = computed(() => {
   if (!selectedCategory.value) return 'همه محصولات'
 
-  // جستجو در دسته‌بندی‌های اصلی
   const mainCat = categories.value.find(c => c.id === selectedCategory.value)
   if (mainCat) return mainCat.name
 
-  // جستجو در زیرمجموعه‌ها
   for (const cat of categories.value) {
     const sub = cat.subs?.find(s => s.id === selectedCategory.value)
     if (sub) return sub.name
@@ -199,19 +194,8 @@ onMounted(async () => {
 
 <template>
   <div class="item-list-page">
-    <!-- سمت راست: فاکتور -->
-    <div class="invoice-section">
-      <ItemCalculator
-          :items="invoiceItems"
-          @update-quantity="updateQuantity"
-          @remove-item="removeFromInvoice"
-          @clear-invoice="clearInvoice"
-      />
-    </div>
-
-    <!-- سمت چپ: لیست محصولات -->
+    <!-- سمت راست: لیست محصولات -->
     <div class="products-section">
-      <!-- ===== هدر ساده با تاکید روی محصولات ===== -->
       <div class="products-header">
         <div class="header-main">
           <div class="header-title">
@@ -223,7 +207,6 @@ onMounted(async () => {
           </div>
 
           <div class="header-actions">
-            <!-- نشانگر دسته‌بندی فعال - خیلی ساده و بی‌ادعا -->
             <div
                 v-if="selectedCategory"
                 class="active-category-chip"
@@ -234,7 +217,6 @@ onMounted(async () => {
               <span class="chip-remove">✕</span>
             </div>
 
-            <!-- دکمه فیلتر دسته‌بندی - یک آیکون ساده -->
             <button
                 class="filter-toggle-btn"
                 :class="{ 'active': showCategoryFilter }"
@@ -250,7 +232,6 @@ onMounted(async () => {
           </div>
         </div>
 
-        <!-- جستجوی محصولات - اولویت اول -->
         <div class="product-search">
           <div class="search-container">
             <span class="search-icon">🔍</span>
@@ -268,7 +249,6 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- ===== پنل فیلتر دسته‌بندی - مخفی و مینیمال ===== -->
       <div v-if="showCategoryFilter" class="category-filter-panel">
         <div class="filter-header">
           <span class="filter-header-title">فیلتر براساس دسته‌بندی</span>
@@ -277,7 +257,6 @@ onMounted(async () => {
           </button>
         </div>
 
-        <!-- جستجوی دسته‌بندی داخل پنل -->
         <div class="filter-search">
           <span class="filter-search-icon">🔍</span>
           <input
@@ -288,9 +267,7 @@ onMounted(async () => {
           />
         </div>
 
-        <!-- لیست دسته‌بندی‌ها -->
         <div class="filter-list">
-          <!-- گزینه همه محصولات -->
           <div
               class="filter-item"
               :class="{ 'active': !selectedCategory }"
@@ -301,7 +278,6 @@ onMounted(async () => {
             <span class="filter-item-count">{{ itemData?.count || 0 }}</span>
           </div>
 
-          <!-- دسته‌بندی‌های اصلی -->
           <div
               v-for="category in categories"
               :key="category.id"
@@ -314,7 +290,6 @@ onMounted(async () => {
             <span class="filter-item-count">{{ category.items_count || 0 }}</span>
           </div>
 
-          <!-- زیرمجموعه‌ها -->
           <template v-for="category in categories" :key="'sub-'+category.id">
             <div
                 v-for="sub in category.subs"
@@ -330,7 +305,6 @@ onMounted(async () => {
           </template>
         </div>
 
-        <!-- صفحه‌بندی دسته‌بندی -->
         <div v-if="categoryData && categoryData.total_pages > 1" class="filter-pagination">
           <button
               @click="prevCategoryPage"
@@ -352,7 +326,6 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- ===== وضعیت بارگذاری ===== -->
       <div v-if="loading" class="loading-state">
         <div class="spinner-ring">
           <div></div>
@@ -363,7 +336,6 @@ onMounted(async () => {
         <p>در حال بارگذاری محصولات...</p>
       </div>
 
-      <!-- ===== خطا ===== -->
       <div v-else-if="error" class="error-state">
         <span class="error-icon">⚠️</span>
         <p>{{ error }}</p>
@@ -372,7 +344,6 @@ onMounted(async () => {
         </button>
       </div>
 
-      <!-- ===== گرید محصولات - اولویت اول ===== -->
       <div v-else-if="items.length > 0" class="products-grid">
         <ItemCard
             v-for="item in items"
@@ -382,7 +353,6 @@ onMounted(async () => {
         />
       </div>
 
-      <!-- ===== حالت خالی ===== -->
       <div v-else class="empty-state">
         <div class="empty-illustration">
           <span class="empty-icon">🍽️</span>
@@ -395,7 +365,6 @@ onMounted(async () => {
         </button>
       </div>
 
-      <!-- ===== صفحه‌بندی محصولات ===== -->
       <div class="pagination-wrapper" v-if="itemData && itemData.total_pages > 1">
         <div class="pagination">
           <button
@@ -424,7 +393,6 @@ onMounted(async () => {
         </span>
       </div>
 
-      <!-- ===== آمار محصولات ===== -->
       <div v-else-if="items.length > 0" class="simple-footer">
         <span>{{ items.length }} محصول</span>
         <span v-if="selectedCategory" class="footer-category">
@@ -432,29 +400,29 @@ onMounted(async () => {
         </span>
       </div>
     </div>
+
+    <!-- سمت چپ: فاکتور -->
+    <div class="invoice-section">
+      <ItemCalculator
+          :items="invoiceItems"
+          @update-quantity="updateQuantity"
+          @remove-item="removeFromInvoice"
+          @clear-invoice="clearInvoice"
+      />
+    </div>
   </div>
 </template>
 
 <style scoped>
 .item-list-page {
   display: grid;
-  grid-template-columns: 380px 1fr;
+  grid-template-columns: 1fr 380px;
   gap: 20px;
-  height: 100%;
+  height: 100vh;
   background: #f5f7fb;
   direction: rtl;
-}
-
-/* ===== بخش فاکتور ===== */
-.invoice-section {
-  background: white;
-  border-radius: 20px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
-  overflow: hidden;
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  padding: 20px;
+  box-sizing: border-box;
 }
 
 /* ===== بخش محصولات ===== */
@@ -464,16 +432,27 @@ onMounted(async () => {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
   height: 100%;
+  overflow: hidden;
   border: 1px solid rgba(0, 0, 0, 0.03);
 }
 
-/* ===== هدر ساده و مینیمال ===== */
+/* ===== بخش فاکتور ===== */
+.invoice-section {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+/* ===== هدر محصولات ===== */
 .products-header {
   padding: 20px 24px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   background: white;
+  flex-shrink: 0;
 }
 
 .header-main {
@@ -522,7 +501,6 @@ onMounted(async () => {
   gap: 12px;
 }
 
-/* ===== چیپ دسته‌بندی فعال - خیلی ساده ===== */
 .active-category-chip {
   display: flex;
   align-items: center;
@@ -559,11 +537,6 @@ onMounted(async () => {
   opacity: 0.6;
 }
 
-.active-category-chip:hover .chip-remove {
-  opacity: 1;
-}
-
-/* ===== دکمه فیلتر - یک آیکون ساده ===== */
 .filter-toggle-btn {
   width: 36px;
   height: 36px;
@@ -577,6 +550,7 @@ onMounted(async () => {
   cursor: pointer;
   transition: all 0.2s;
   font-size: 18px;
+  flex-shrink: 0;
 }
 
 .filter-toggle-btn:hover {
@@ -598,9 +572,9 @@ onMounted(async () => {
   padding: 6px 14px;
   border-radius: 30px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
-/* ===== جستجوی محصول - اولویت اول ===== */
 .product-search {
   width: 100%;
 }
@@ -662,7 +636,7 @@ onMounted(async () => {
   color: #475569;
 }
 
-/* ===== پنل فیلتر دسته‌بندی - مخفی و مینیمال ===== */
+/* ===== پنل فیلتر دسته‌بندی ===== */
 .category-filter-panel {
   position: absolute;
   top: 180px;
@@ -795,11 +769,6 @@ onMounted(async () => {
   border-radius: 12px;
 }
 
-.filter-item.active .filter-item-count {
-  background: #e8f5e9;
-  color: #4CAF50;
-}
-
 .sub-item {
   padding-right: 36px;
 }
@@ -857,7 +826,7 @@ onMounted(async () => {
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 12px;
   align-content: start;
-  background: #ffffff;
+  min-height: 0;
 }
 
 /* ===== حالت‌های مختلف ===== */
@@ -871,6 +840,7 @@ onMounted(async () => {
   justify-content: center;
   padding: 40px;
   background: white;
+  min-height: 0;
 }
 
 .spinner-ring {
@@ -936,6 +906,7 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .pagination {
@@ -957,6 +928,7 @@ onMounted(async () => {
   font-size: 18px;
   color: #475569;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .page-btn:hover:not(:disabled) {
@@ -988,6 +960,7 @@ onMounted(async () => {
   color: #64748b;
   display: flex;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .footer-category {
@@ -1014,13 +987,17 @@ onMounted(async () => {
 /* ===== رسپانسیو ===== */
 @media (max-width: 1024px) {
   .item-list-page {
-    grid-template-columns: 340px 1fr;
+    grid-template-columns: 1fr 340px;
   }
 }
 
 @media (max-width: 768px) {
   .item-list-page {
     grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 12px;
+    height: auto;
+    min-height: 100vh;
   }
 
   .category-filter-panel {
@@ -1048,6 +1025,15 @@ onMounted(async () => {
   .header-actions {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .products-grid {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    padding: 12px;
+  }
+
+  .invoice-section {
+    height: 500px;
   }
 }
 </style>
