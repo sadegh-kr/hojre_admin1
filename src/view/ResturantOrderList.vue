@@ -27,7 +27,18 @@
             <option value="cancel">لغو شده</option>
           </select>
         </div>
-
+        <!-- فیلتر نوع سفارش -->
+        <div class="filter-group">
+          <select
+              id="order-type-filter"
+              v-model="filters.orderType"
+              class="filter-select"
+              @change="applyFilters"
+          >
+            <option value="online">سفارش‌های آنلاین</option>
+            <option value="in_store">سفارش‌های داخل فروشگاه</option>
+          </select>
+        </div>
         <!-- فیلتر نوع تحویل -->
         <div class="filter-group">
 <!--          <label for="delivery-filter">نوع تحویل:</label>-->
@@ -247,6 +258,7 @@ const filters = reactive({
   status: '',
   delivery: '',
   sortBy: '',
+  orderType: 'online',
   sortOrder: 'asc',
   orderNumber: '',
   customerSearch: '',
@@ -448,7 +460,9 @@ const fetchOrders = async (page = 1, pageSize = pagination.pageSize) => {
       page: page,
       page_size: pageSize
     };
-
+    if (filters.orderType) {
+      params.order_type = filters.orderType;  // <--- این خط رو اضافه کن
+    }
     if (filters.orderNumber) {
       params.order_number = filters.orderNumber;
     }

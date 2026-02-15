@@ -6,10 +6,15 @@ const props = defineProps({
   items: {
     type: Array,
     default: () => []
+  },
+  submitting: {
+    type: Boolean,
+    default: false
   }
 })
 
-const emit = defineEmits(['update-quantity', 'remove-item', 'clear-invoice'])
+const emit = defineEmits(['update-quantity', 'remove-item', 'clear-invoice', 'submit-order'])
+
 
 const taxRate = 9
 const discount = 0
@@ -142,9 +147,14 @@ const decreaseQuantity = (item) => {
 
     <!-- دکمه ثبت - ثابت در پایین -->
     <div class="invoice-actions">
-      <button class="btn-register">
-        ثبت و پرداخت
-        <span class="btn-icon">✓</span>
+      <button
+          class="btn-register"
+          @click="$emit('submit-order')"
+          :disabled="submitting || items.length === 0"
+      >
+        <span v-if="submitting" class="spinner"></span>
+        <span v-else>✓</span>
+        {{ submitting ? 'در حال ثبت...' : 'ثبت و پرداخت' }}
       </button>
     </div>
   </div>

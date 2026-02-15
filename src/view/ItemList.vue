@@ -2,6 +2,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import itemApi from "@/api/item.api.js";
+import orderApi from "@/api/order.api.js"; // ایمپورت orderApi
 import ItemCalculator from "@/components/item/ItemCalculator.vue";
 import ItemCard from "@/components/item/ItemCard.vue";
 
@@ -16,6 +17,7 @@ const searchQuery = ref('')
 const selectedCategory = ref('')
 const categorySearchQuery = ref('')
 const showCategoryFilter = ref(false)
+const submittingOrder = ref(false) // برای نمایش وضعیت ثبت سفارش
 
 // ========== صفحه‌بندی ==========
 const currentPage = ref(1)
@@ -127,6 +129,39 @@ const removeFromInvoice = (itemId) => {
 const clearInvoice = () => {
   if (confirm('آیا از حذف همه آیتم‌های فاکتور اطمینان دارید؟')) {
     invoiceItems.value = []
+  }
+}
+
+// ========== ثبت سفارش ==========
+const submitOrder = async () => {
+  if (invoiceItems.value.length === 0) {
+    alert('فاکتور خالی است')
+    return
+  }
+  //
+  // if (!confirm('آیا از ثبت سفارش اطمینان دارید؟')) {
+  //   return
+  // }
+
+  submittingOrder.value = true
+
+  try {
+    // تبدیل آیتم‌های فاکتور به فرمت مورد نیاز API
+    const itemsData = invoiceItems.value.map(item => ({
+      item_id: item.id,
+      quantity: item.quantity
+    }))
+
+    const response = await orderApi.createOrderInStore({ items: itemsData })
+    if (response.data.success) {
+      // alert(`سفارش ثبت شد.`)
+      invoiceItems.value = []
+    }
+  } catch (err) {
+    console.error('Error submitting order:', err)
+    alert('خطا در ارتباط با سرور')
+  } finally {
+    submittingOrder.value = false
   }
 }
 
@@ -405,9 +440,11 @@ onMounted(async () => {
     <div class="invoice-section">
       <ItemCalculator
           :items="invoiceItems"
+          :submitting="submittingOrder"
           @update-quantity="updateQuantity"
           @remove-item="removeFromInvoice"
           @clear-invoice="clearInvoice"
+          @submit-order="submitOrder"
       />
     </div>
   </div>

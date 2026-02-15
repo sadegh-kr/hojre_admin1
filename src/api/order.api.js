@@ -21,6 +21,9 @@ class OrderAPI extends BaseAPI {
     updateOrderStatus(orderId, data) {
         return this.patch(`${this.basePath}update-status/${orderId}/`, data)
     }
+    createOrderInStore( data) {
+        return this.post(`${this.basePath}create/in_store/`, data)
+    }
     userOrderList(UserId, params) {
         return this.get(`${this.basePath}user-order/${UserId}/`, {params})
     }
@@ -29,6 +32,7 @@ class OrderAPI extends BaseAPI {
     updateOrder(orderId, data) {
         return this.get(`${this.basePath}/${orderId}/`, data)
     }
+
 
     // حذف سفارش
     deleteOrder(orderId) {
