@@ -4,44 +4,7 @@
     <router-view />
 
     <!-- نوار وضعیت پایین -->
-    <div  class="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-sm bg-gradient-to-r from-amber-900/95 to-amber-800/95 border-t border-amber-700/30 shadow-lg !p-2">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-        <div class="flex flex-col  sm:flex-row justify-between items-center gap-2 p-[20px]">
-          <!-- وضعیت اتصال -->
-          <div class="flex items-center gap-3 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2 border border-white/20">
-            <div class="flex items-center gap-2">
-              <div v-if="isOnline" class="flex items-center gap-2">
-                <div class="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
-                <span class="text-green-300 font-medium">آنلاین</span>
-              </div>
-              <div v-else class="flex items-center gap-2">
-                <div class="h-2 w-2 rounded-full bg-yellow-500"></div>
-                <span class="text-yellow-300 font-medium">آفلاین</span>
-              </div>
-            </div>
-            
-            <div class="hidden sm:block h-4 w-px bg-white/30 mx-2"></div>
-            
-            <div class="flex items-center gap-2 text-sm opacity-90 text-white ">
-              <i :class="isOnline ? 'fas fa-wifi' : 'fas fa-exclamation-triangle'"></i>
-              <span>{{ isOnline ? 'اتصال اینترنت برقرار است' : 'اتصال اینترنت قطع است' }}</span>
-            </div>
-          </div>
-          
-          <!-- اطلاعات برنامه -->
-          <div class="flex items-center gap-4">
-            <div class="flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
-              <i class="fas fa-mug-hot text-amber-300"></i>
-              <span class="font-bold text-white">کافه حجره</span>
-
-
-              <span class="text-xs bg-amber-600/30 px-2 py-1 rounded-full text-white !p-1"> Development & Maintenance | Supervised by Hossein Kooshkian v1.0.0</span>
-            </div>
-
-          </div>
-        </div>
-      </div>
-    </div>
+   
   </div>
 </template>
 

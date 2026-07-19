@@ -1,11 +1,11 @@
 <template>
   <div :class="['app-container', themeClass, { 'sidebar-collapsed': isSidebarCollapsed }]">
     <!-- هدر جداگانه -->
-    <HeaderComponent
+    <!-- <HeaderComponent
         :isDarkMode="isDarkMode"
         @toggle-theme="toggleTheme"
         @toggle-sidebar="toggleMobileSidebar"
-    />
+    /> -->
 
     <!-- سایدبار جداگانه -->
     <SidebarComponent
