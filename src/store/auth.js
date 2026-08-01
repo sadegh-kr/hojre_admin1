@@ -11,6 +11,8 @@ export const useAuthStore = defineStore('auth', {
 
     getters: {
         isAuthenticated: (state) => !!state.accessToken,
+        isAdmin: (state) => Boolean(state.user?.is_staff || state.user?.is_superuser),
+        canAccessFinancials: (state) => Boolean(state.user?.is_superuser || (state.user?.is_staff && state.user?.admin_role === 'owner')),
     },
 
     actions: {

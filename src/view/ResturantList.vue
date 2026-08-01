@@ -1,9 +1,11 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/store/auth.js'
 import RestaurantAPI from '@/api/restaurant.api.js'
 
 const router = useRouter()
+const authStore = useAuthStore()
 const restaurants = ref([])
 const loading = ref(false)
 
@@ -93,7 +95,7 @@ const formatDate = (dateString) => {
             <th>وضعیت</th>
             <th>اسلاگ</th>
             <th>تاریخ ایجاد</th>
-            <th>عملیات</th>
+            <th v-if="authStore.isAdmin">عملیات</th>
           </tr>
           </thead>
           <tbody>
@@ -131,7 +133,7 @@ const formatDate = (dateString) => {
             </td>
 
             <!-- ستون وضعیت -->
-            <td>
+            <td v-if="authStore.isAdmin">
                 <span
                     class="status-badge"
                     :class="restaurant.is_active ? 'active-status' : 'inactive-status'"

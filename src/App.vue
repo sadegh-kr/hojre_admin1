@@ -1,5 +1,5 @@
 <template>
-  <div id="app" class="min-h-screen font-sans antialiased bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50 text-gray-800 pb-16 sm:pb-20">
+  <div class="app-root">
     <!-- نمایش صفحه فعلی -->
     <router-view />
 

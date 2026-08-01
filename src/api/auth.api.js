@@ -54,6 +54,9 @@ class AuthAPI extends BaseAPI {
         // data: { password }
         return this.delete('/api/user/delete/', { data })
     }
+
+    getAdminUsers(params = {}) { return this.get('/api/user/admin/users/', { params }) }
+    updateAdminRole(id, admin_role) { return this.patch(`/api/user/admin/users/${id}/role/`, { admin_role }) }
 }
 
 export default new AuthAPI()

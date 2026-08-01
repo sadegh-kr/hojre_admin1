@@ -12,7 +12,9 @@ export const getBaseUrl = () => {
         return import.meta.env.VITE_BASE_URL
     }
 
-    return 'http://127.0.0.1:8000/'
+    // Vite proxies /api to Django in development; production supplies
+    // VITE_BASE_URL from .env.production or deployment configuration.
+    return '/'
 }
 
 export const BASE_URL = getBaseUrl()

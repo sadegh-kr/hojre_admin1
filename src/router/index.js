@@ -13,6 +13,9 @@ import OrderList from "@/view/ResturantOrderList.vue";
 import UserList from "@/view/UserList.vue";
 import NotFound from "@/view/NotFound.vue";
 import ItemList from "@/view/ItemList.vue";
+import ExpensivList from "@/view/ExpensivList.vue";
+import ProductManagement from "@/view/ProductManagement.vue";
+import AdminAccess from "@/view/AdminAccess.vue";
 
 const routes = [
     {
@@ -32,9 +35,13 @@ const routes = [
         children: [
             { path: "", component: DashboardPage },
             { path: "restaurant_list", component: ResturantList },
-            { path: "restaurant/order-list/:restaurantId", component: OrderList, props: true },
+            { path: "restaurant/order-list/:restaurantId", component: OrderList, props: true, meta: { requiresAdmin: true } },
             { path: "user-list", component: UserList, props: true },
             { path: "item-list", component: ItemList, props: true },
+            { path: "expenses", component: ExpensivList, meta: { requiresOwner: true } },
+            { path: "products", component: ProductManagement, meta: { requiresOwner: true } },
+            { path: "admin-access", component: AdminAccess, meta: { requiresOwner: true } },
+            { path: "expensiv-list", redirect: "/dashboard/expenses" },
 
         ]
     },
@@ -58,6 +65,10 @@ router.beforeEach((to, from, next) => {
     if (to.path.startsWith('/dashboard') && !authStore.isAuthenticated) {
         // اگر لاگین نکرده → هدایت به لاگین
         next('/login')
+    } else if (to.matched.some(record => record.meta.requiresAdmin) && !authStore.isAdmin) {
+        next('/dashboard')
+    } else if (to.matched.some(record => record.meta.requiresOwner) && !authStore.canAccessFinancials) {
+        next('/dashboard')
     } else if (to.path === '/login' && authStore.isAuthenticated) {
         // اگر قبلاً لاگین کرده → هدایت به داشبورد
         next('/dashboard')

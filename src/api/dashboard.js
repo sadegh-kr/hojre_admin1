@@ -2,8 +2,8 @@
 import BaseAPI from './BaseAPI'
 
 class DashboardAPI extends BaseAPI {
-    dashboard() {
-        return this.get('/api/core/v1/dashboard/')
+    dashboard(params = {}) {
+        return this.get('/api/core/v1/dashboard/', { params })
     }
 
 }

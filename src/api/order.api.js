@@ -1,5 +1,6 @@
 // src/api/OrderAPI.js
 import BaseAPI from './BaseAPI.js'
+import { useCostToast } from '@/composables/useCostToast'
 
 class OrderAPI extends BaseAPI {
     constructor() {
@@ -12,14 +13,27 @@ class OrderAPI extends BaseAPI {
         return this.get(`${this.basePath}list/${restaurantId}`, { params })
     }
 
-    // جزئیات یک سفارش
+    async request(promise, notify = false) {
+        try {
+            const { data } = await promise
+            if (!data?.success) { const error = new Error(data?.message || 'انجام عملیات امکان‌پذیر نیست.'); error.order = data; throw error }
+            if (notify) useCostToast().success(data.message)
+            return data.data
+        } catch (error) {
+            const payload = error.order || error.response?.data
+            if (notify && payload?.message) useCostToast().error(payload.message)
+            error.order = payload
+            throw error
+        }
+    }
+
     getOrder(orderId) {
-        return this.get(`${this.basePath}detail/${orderId}/`)
+        return this.request(this.get(`${this.basePath}detail/${orderId}/`))
     }
 
     // ایجاد سفارش جدید
     updateOrderStatus(orderId, data) {
-        return this.patch(`${this.basePath}update-status/${orderId}/`, data)
+        return this.request(this.patch(`${this.basePath}update-status/${orderId}/`, data), true)
     }
     createOrderInStore( data) {
         return this.post(`${this.basePath}create/in_store/`, data)
