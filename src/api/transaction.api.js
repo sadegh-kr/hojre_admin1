@@ -2,7 +2,7 @@ import BaseAPI from './BaseAPI.js'
 import { useCostToast } from '@/composables/useCostToast'
 
 class TransactionAPI extends BaseAPI {
-  constructor() { super(); this.basePath = '/api/expenses/admin/' }
+  constructor() { super(); this.basePath = '/api/expenses/' }
 
   async request(promise, { notify = false } = {}) {
     try {
