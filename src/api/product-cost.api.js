@@ -19,6 +19,17 @@ class ProductCostAPI extends BaseAPI {
   meta() { return this.request(this.get(`${this.basePath}products/meta/`)) }
   dashboard(params = {}) { return this.request(this.get(`${this.basePath}cost-dashboard/`, { params })) }
   ingredients(params = {}) { return this.request(this.get(`${this.basePath}ingredients/`, { params })) }
+  async activeIngredients() {
+    const results = []
+    let page = 1
+    let response
+    do {
+      response = await this.ingredients({ is_active: true, page, page_size: 50 })
+      results.push(...(response.results || []))
+      page += 1
+    } while (response.has_next)
+    return results
+  }
   createIngredient(data) { return this.request(this.post(`${this.basePath}ingredients/`, data), true) }
   updateIngredient(id, data) { return this.request(this.patch(`${this.basePath}ingredients/${id}/`, data), true) }
   deleteIngredient(id) { return this.request(this.delete(`${this.basePath}ingredients/${id}/`), true) }
