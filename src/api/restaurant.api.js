@@ -8,16 +8,12 @@ class RestaurantAPI extends BaseAPI {
 
     // لیست رستوران‌ها
     listRestaurants() {
-        return this.get('/api/restaurant/v2/restaurant/list')
+        return this.get('restaurant/v2/restaurant/list')
     }
 
     listBranch() {
-        return this.get('/api/restaurant/v2/branch/list')
+        return this.get('restaurant/v2/branch/list')
     }
-    // اگه بخوای بعداً endpoint دیگه اضافه کنی:
-    // createRestaurant(data) {
-    //     return this.post('/api/restaurant/v2/create', data)
-    // }
 }
 
 export default new RestaurantAPI()

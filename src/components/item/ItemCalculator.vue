@@ -15,10 +15,6 @@ const props = defineProps({
 
 const emit = defineEmits(['update-quantity', 'remove-item', 'clear-invoice', 'submit-order'])
 
-
-const taxRate = 9
-const discount = 0
-
 // ========== تبدیل قیمت به عدد ==========
 const toNumber = (value) => {
   if (typeof value === 'number') return value
@@ -48,14 +44,6 @@ const invoiceItems = computed(() => {
 
 const subtotal = computed(() => {
   return invoiceItems.value.reduce((sum, item) => sum + item.rowTotal, 0)
-})
-
-const taxAmount = computed(() => {
-  return (subtotal.value * taxRate) / 100
-})
-
-const total = computed(() => {
-  return subtotal.value + taxAmount
 })
 
 // ========== فرمت عدد فارسی ==========
@@ -134,14 +122,9 @@ const decreaseQuantity = (item) => {
         <span>{{ formattedPrice(subtotal) }} تومان</span>
       </div>
 
-      <div class="summary-row tax">
-        <span>مالیات (۹%):</span>
-        <span>{{ formattedPrice(taxAmount) }} تومان</span>
-      </div>
-
       <div class="summary-row total">
-        <span>قابل پرداخت:</span>
-        <span class="total-amount">{{ formattedPrice(total) }} تومان</span>
+        <span>مبلغ سفارش:</span>
+        <span class="total-amount">{{ formattedPrice(subtotal) }} تومان</span>
       </div>
     </div>
 
@@ -154,7 +137,7 @@ const decreaseQuantity = (item) => {
       >
         <span v-if="submitting" class="spinner"></span>
         <span v-else>✓</span>
-        {{ submitting ? 'در حال ثبت...' : 'ثبت و پرداخت' }}
+        {{ submitting ? 'در حال ثبت…' : 'ثبت سفارش' }}
       </button>
     </div>
   </div>

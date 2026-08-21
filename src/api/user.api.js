@@ -4,7 +4,7 @@ import BaseAPI from './BaseAPI.js'
 class UserAPI extends BaseAPI {
     constructor() {
         super()
-        this.basePath = '/api/customer/v2/'  
+        this.basePath = 'customer/v2/'
     }
 
     getCustomerList( params = {}) {

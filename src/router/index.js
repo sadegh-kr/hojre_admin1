@@ -17,6 +17,15 @@ import ExpensivList from "@/view/ExpensivList.vue";
 import ProductManagement from "@/view/ProductManagement.vue";
 import AdminAccess from "@/view/AdminAccess.vue";
 
+const CostOverview = () => import("@/view/cost/CostOverview.vue");
+const CostProducts = () => import("@/view/cost/CostProducts.vue");
+const CostIngredients = () => import("@/view/cost/CostIngredients.vue");
+const CostOverheads = () => import("@/view/cost/CostOverheads.vue");
+const ProductRecipe = () => import("@/view/cost/ProductRecipe.vue");
+const ExpenseCategories = () => import("@/view/cost/ExpenseCategories.vue");
+const ProductionCosts = () => import("@/view/cost/ProductionCosts.vue");
+const CostReports = () => import("@/view/cost/CostReports.vue");
+
 const routes = [
     {
         path: "/",
@@ -38,10 +47,32 @@ const routes = [
             { path: "restaurant/order-list/:restaurantId", component: OrderList, props: true, meta: { requiresAdmin: true } },
             { path: "user-list", component: UserList, props: true },
             { path: "item-list", component: ItemList, props: true },
-            { path: "expenses", component: ExpensivList, meta: { requiresOwner: true } },
-            { path: "products", component: ProductManagement, meta: { requiresOwner: true } },
+            {
+                path: "cost-control",
+                component: ProductManagement,
+                meta: { requiresOwner: true },
+                children: [
+                    { path: "", redirect: "/dashboard/cost-control/overview" },
+                    { path: "overview", component: CostOverview },
+                    { path: "expenses", component: ExpensivList },
+                    { path: "expense-categories", component: ExpenseCategories },
+                    { path: "products", component: CostProducts },
+                    { path: "products/:productId/recipe", name: "product-recipe", component: ProductRecipe },
+                    { path: "materials", component: CostIngredients },
+                    { path: "production-costs", component: ProductionCosts },
+                    { path: "reports", component: CostReports },
+                    { path: "overheads", component: CostOverheads },
+                ],
+            },
+            { path: "expenses", redirect: "/dashboard/cost-control/expenses" },
+            { path: "products", redirect: "/dashboard/cost-control/overview" },
+            { path: "products/overview", redirect: "/dashboard/cost-control/overview" },
+            { path: "products/catalog", redirect: "/dashboard/cost-control/products" },
+            { path: "products/catalog/:productId/recipe", redirect: to => `/dashboard/cost-control/products/${to.params.productId}/recipe` },
+            { path: "products/ingredients", redirect: "/dashboard/cost-control/materials" },
+            { path: "products/overheads", redirect: "/dashboard/cost-control/overheads" },
             { path: "admin-access", component: AdminAccess, meta: { requiresOwner: true } },
-            { path: "expensiv-list", redirect: "/dashboard/expenses" },
+            { path: "expensiv-list", redirect: "/dashboard/cost-control/expenses" },
 
         ]
     },

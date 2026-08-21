@@ -1,10 +1,16 @@
 <!-- ItemList.vue -->
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
 import itemApi from "@/api/item.api.js";
-import orderApi from "@/api/order.api.js"; // ایمپورت orderApi
+import orderApi from '@/api/order.api.js'
 import ItemCalculator from "@/components/item/ItemCalculator.vue";
 import ItemCard from "@/components/item/ItemCard.vue";
+import CostToastHost from '@/components/cost/CostToastHost.vue'
+import ProductCreateModal from '@/components/modals/ProductCreateModal.vue'
+import ProductCategoryManager from '@/components/modals/ProductCategoryManager.vue'
+import { useCostToast } from '@/composables/useCostToast'
+import { getApiErrorMessage } from '@/api/error'
+import productCostApi from '@/api/product-cost.api'
 
 // ========== حالت‌ها ==========
 const loading = ref(true)
@@ -15,21 +21,43 @@ const itemData = ref(null)
 const categoryData = ref(null)
 const searchQuery = ref('')
 const selectedCategory = ref('')
+const selectedCategoryType = ref('category')
+const selectedCategoryLabel = ref('')
 const categorySearchQuery = ref('')
 const showCategoryFilter = ref(false)
-const submittingOrder = ref(false) // برای نمایش وضعیت ثبت سفارش
+const categoryError = ref('')
+const submittingOrder = ref(false)
+const toast = useCostToast()
+const showCreateProduct = ref(false)
+const creatingProduct = ref(false)
+const createProductError = ref('')
+const createProductFieldErrors = ref({})
+const productCategories = ref([])
+const productMenus = ref([])
+const managedCategories = ref([])
+const showCategoryManager = ref(false)
+const loadingCategoryManager = ref(false)
+const savingCategory = ref(false)
+const categoryManagerError = ref('')
+const categoryManagerFieldErrors = ref({})
 
 // ========== صفحه‌بندی ==========
 const currentPage = ref(1)
 const pageSize = ref(50)
 const categoryPage = ref(1)
 const categoryPageSize = ref(20)
+let itemSearchTimer
+let categorySearchTimer
+let itemRequestId = 0
+let categoryRequestId = 0
 
 // ========== آیتم‌های فاکتور ==========
 const invoiceItems = ref([])
 
 // ========== دریافت دسته‌بندی‌ها ==========
 const fetchCategories = async () => {
+  const requestId = ++categoryRequestId
+  categoryError.value = ''
   try {
     const params = {
       page: categoryPage.value,
@@ -40,22 +68,25 @@ const fetchCategories = async () => {
       params.search = categorySearchQuery.value
     }
 
-    const response = await itemApi.getItemCategory(params)
-    categoryData.value = response
-    categories.value = response.data?.results || response.results || response || []
+    const data = await itemApi.getItemCategory(params)
+    if (requestId !== categoryRequestId) return
+    categoryData.value = data
+    categories.value = data.results || []
   } catch (err) {
-    console.error('Error fetching categories:', err)
+    if (requestId === categoryRequestId) categoryError.value = getApiErrorMessage(err)
   }
 }
 
 // ========== واتچ برای جستجوی دسته‌بندی ==========
 watch(categorySearchQuery, () => {
+  clearTimeout(categorySearchTimer)
   categoryPage.value = 1
-  fetchCategories()
+  categorySearchTimer = setTimeout(fetchCategories, 300)
 })
 
 // ========== دریافت محصولات ==========
 const fetchItems = async () => {
+  const requestId = ++itemRequestId
   try {
     loading.value = true
     error.value = null
@@ -70,28 +101,29 @@ const fetchItems = async () => {
     }
 
     if (selectedCategory.value) {
-      params.category_id = selectedCategory.value
+      params[selectedCategoryType.value === 'subcategory' ? 'subcategory_id' : 'category'] = selectedCategory.value
     }
 
-    const response = await itemApi.getItemList(params)
-    items.value = response.data?.results || response.results || []
-    itemData.value = response
+    const data = await itemApi.getItemList(params)
+    if (requestId !== itemRequestId) return
+    items.value = data.results || []
+    itemData.value = data
 
-    if (currentPage.value > response.total_pages) {
-      currentPage.value = response.total_pages || 1
+    if (currentPage.value > data.total_pages) {
+      currentPage.value = data.total_pages || 1
     }
   } catch (err) {
-    error.value = 'خطا در دریافت اطلاعات'
-    console.error('Error fetching items:', err)
+    if (requestId === itemRequestId) error.value = getApiErrorMessage(err)
   } finally {
-    loading.value = false
+    if (requestId === itemRequestId) loading.value = false
   }
 }
 
 // ========== واتچ برای سرچ محصول و دسته‌بندی ==========
-watch([searchQuery, selectedCategory], () => {
+watch(searchQuery, () => {
+  clearTimeout(itemSearchTimer)
   currentPage.value = 1
-  fetchItems()
+  itemSearchTimer = setTimeout(fetchItems, 350)
 })
 
 // ========== مدیریت فاکتور ==========
@@ -132,47 +164,135 @@ const clearInvoice = () => {
   }
 }
 
-// ========== ثبت سفارش ==========
+// ========== ثبت سفارش از صفحه اقلام ==========
 const submitOrder = async () => {
-  if (invoiceItems.value.length === 0) {
-    alert('فاکتور خالی است')
-    return
-  }
-  //
-  // if (!confirm('آیا از ثبت سفارش اطمینان دارید؟')) {
-  //   return
-  // }
-
+  if (!invoiceItems.value.length || submittingOrder.value) return
   submittingOrder.value = true
-
   try {
-    // تبدیل آیتم‌های فاکتور به فرمت مورد نیاز API
-    const itemsData = invoiceItems.value.map(item => ({
-      item_id: item.id,
-      quantity: item.quantity
-    }))
-
-    const response = await orderApi.createOrderInStore({ items: itemsData })
-    if (response.data.success) {
-      // alert(`سفارش ثبت شد.`)
-      invoiceItems.value = []
+    const response = await orderApi.createOrderInStore({
+      items: invoiceItems.value.map(item => ({ item_id: item.id, quantity: item.quantity }))
+    })
+    if (!response.data?.success) {
+      const requestError = new Error(response.data?.error || response.data?.message || 'سفارش ثبت نشد.')
+      requestError.order = response.data
+      throw requestError
     }
-  } catch (err) {
-    console.error('Error submitting order:', err)
-    alert('خطا در ارتباط با سرور')
+    const orderNumber = response.data.data?.order_number
+    invoiceItems.value = []
+    toast.success(orderNumber ? `سفارش شماره ${orderNumber} ثبت شد.` : 'سفارش با موفقیت ثبت شد.')
+  } catch (cause) {
+    toast.error(getApiErrorMessage(cause))
   } finally {
     submittingOrder.value = false
   }
 }
 
 // ========== انتخاب دسته‌بندی ==========
-const selectCategory = (categoryId) => {
-  if (selectedCategory.value === categoryId) {
-    selectedCategory.value = ''
-  } else {
-    selectedCategory.value = categoryId
-  }
+const selectCategory = (categoryId = '', type = 'category', label = '') => {
+  selectedCategory.value = categoryId ? String(categoryId) : ''
+  selectedCategoryType.value = type
+  selectedCategoryLabel.value = label
+  currentPage.value = 1
   showCategoryFilter.value = false
+  fetchItems()
+}
+const clearAllFilters = () => {
+  clearTimeout(itemSearchTimer)
+  searchQuery.value = ''
+  selectCategory()
+}
+
+const openCreateProduct = async () => {
+  createProductError.value = ''
+  createProductFieldErrors.value = {}
+  showCreateProduct.value = true
+  if (productCategories.value.length) return
+  try {
+    const meta = await productCostApi.meta()
+    productCategories.value = meta.categories || []
+    productMenus.value = meta.menus || []
+  } catch (cause) {
+    createProductError.value = getApiErrorMessage(cause)
+  }
+}
+
+const loadCategoryManager = async () => {
+  loadingCategoryManager.value = true
+  categoryManagerError.value = ''
+  try {
+    const [allCategories, meta] = await Promise.all([itemApi.getAllCategories(), productCostApi.meta()])
+    managedCategories.value = allCategories
+    productCategories.value = meta.categories || []
+    productMenus.value = meta.menus || []
+  } catch (cause) {
+    categoryManagerError.value = getApiErrorMessage(cause)
+  } finally {
+    loadingCategoryManager.value = false
+  }
+}
+
+const openCategoryManager = () => {
+  categoryManagerFieldErrors.value = {}
+  showCategoryManager.value = true
+  loadCategoryManager()
+}
+
+const saveCategory = async ({ id, data }) => {
+  savingCategory.value = true
+  categoryManagerError.value = ''
+  categoryManagerFieldErrors.value = {}
+  try {
+    const response = id ? await itemApi.updateCategory(id, data) : await itemApi.createCategory(data)
+    toast.success(response.message || (id ? 'دسته‌بندی ویرایش شد.' : 'دسته‌بندی ایجاد شد.'))
+    await Promise.all([loadCategoryManager(), fetchCategories()])
+  } catch (cause) {
+    categoryManagerError.value = getApiErrorMessage(cause)
+    const payload = cause.response?.data || {}
+    categoryManagerFieldErrors.value = payload.errors || (payload.message ? {} : payload)
+    toast.error(categoryManagerError.value)
+  } finally {
+    savingCategory.value = false
+  }
+}
+
+const deleteCategory = async category => {
+  if (!confirm(`دسته‌بندی «${category.name}» حذف شود؟`)) return
+  savingCategory.value = true
+  categoryManagerError.value = ''
+  try {
+    const response = await itemApi.deleteCategory(category.id)
+    toast.success(response.message || 'دسته‌بندی حذف شد.')
+    if (selectedCategoryType.value === 'category' && selectedCategory.value === String(category.id)) selectCategory()
+    await Promise.all([loadCategoryManager(), fetchCategories()])
+  } catch (cause) {
+    categoryManagerError.value = getApiErrorMessage(cause)
+    toast.error(categoryManagerError.value)
+  } finally {
+    savingCategory.value = false
+  }
+}
+
+const createProduct = async ({ data, image }) => {
+  if (creatingProduct.value) return
+  creatingProduct.value = true
+  createProductError.value = ''
+  createProductFieldErrors.value = {}
+  try {
+    await productCostApi.createProduct(data, image)
+    showCreateProduct.value = false
+    clearTimeout(itemSearchTimer)
+    searchQuery.value = ''
+    selectedCategory.value = ''
+    selectedCategoryType.value = 'category'
+    selectedCategoryLabel.value = ''
+    currentPage.value = 1
+    await fetchItems()
+  } catch (cause) {
+    createProductError.value = getApiErrorMessage(cause)
+    createProductFieldErrors.value = cause.cost?.errors || cause.response?.data?.errors || {}
+  } finally {
+    creatingProduct.value = false
+  }
 }
 
 // ========== توابع صفحه‌بندی محصولات ==========
@@ -205,25 +325,14 @@ const prevCategoryPage = () => {
   }
 }
 
-// ========== نام دسته‌بندی انتخاب شده ==========
-const selectedCategoryName = computed(() => {
-  if (!selectedCategory.value) return 'همه محصولات'
-
-  const mainCat = categories.value.find(c => c.id === selectedCategory.value)
-  if (mainCat) return mainCat.name
-
-  for (const cat of categories.value) {
-    const sub = cat.subs?.find(s => s.id === selectedCategory.value)
-    if (sub) return sub.name
-  }
-
-  return 'دسته‌بندی'
-})
-
 // ========== اجرای اولیه ==========
 onMounted(async () => {
   await fetchCategories()
   await fetchItems()
+})
+onBeforeUnmount(() => {
+  clearTimeout(itemSearchTimer)
+  clearTimeout(categorySearchTimer)
 })
 </script>
 
@@ -242,13 +351,17 @@ onMounted(async () => {
           </div>
 
           <div class="header-actions">
+            <button type="button" class="create-product-btn" @click="openCreateProduct">
+              <span aria-hidden="true">＋</span> محصول جدید
+            </button>
+            <button type="button" class="manage-category-btn" @click="openCategoryManager">دسته‌بندی‌ها</button>
             <div
                 v-if="selectedCategory"
                 class="active-category-chip"
-                @click="selectCategory('')"
+                @click="selectCategory()"
             >
               <span class="chip-icon">🗂️</span>
-              <span class="chip-text">{{ selectedCategoryName }}</span>
+              <span class="chip-text">{{ selectedCategoryLabel }}</span>
               <span class="chip-remove">✕</span>
             </div>
 
@@ -284,6 +397,7 @@ onMounted(async () => {
         </div>
       </div>
 
+      <div v-if="showCategoryFilter" class="category-filter-backdrop" @click="showCategoryFilter=false"></div>
       <div v-if="showCategoryFilter" class="category-filter-panel">
         <div class="filter-header">
           <span class="filter-header-title">فیلتر براساس دسته‌بندی</span>
@@ -306,23 +420,21 @@ onMounted(async () => {
           <div
               class="filter-item"
               :class="{ 'active': !selectedCategory }"
-              @click="selectCategory('')"
+              @click="selectCategory()"
           >
             <span class="filter-item-icon">📋</span>
             <span class="filter-item-name">همه محصولات</span>
-            <span class="filter-item-count">{{ itemData?.count || 0 }}</span>
           </div>
 
           <div
               v-for="category in categories"
               :key="category.id"
               class="filter-item"
-              :class="{ 'active': selectedCategory === category.id }"
-              @click="selectCategory(category.id)"
+              :class="{ 'active': selectedCategoryType === 'category' && selectedCategory === String(category.id) }"
+              @click="selectCategory(category.id, 'category', category.name)"
           >
             <span class="filter-item-icon">{{ category.icon || '📁' }}</span>
             <span class="filter-item-name">{{ category.name }}</span>
-            <span class="filter-item-count">{{ category.items_count || 0 }}</span>
           </div>
 
           <template v-for="category in categories" :key="'sub-'+category.id">
@@ -330,14 +442,18 @@ onMounted(async () => {
                 v-for="sub in category.subs"
                 :key="sub.id"
                 class="filter-item sub-item"
-                :class="{ 'active': selectedCategory === sub.id }"
-                @click="selectCategory(sub.id)"
+                :class="{ 'active': selectedCategoryType === 'subcategory' && selectedCategory === String(sub.id) }"
+                @click="selectCategory(sub.id, 'subcategory', sub.name)"
             >
               <span class="filter-item-icon sub-icon">↳</span>
               <span class="filter-item-name">{{ sub.name }}</span>
-              <span class="filter-item-count">0</span>
             </div>
           </template>
+        </div>
+
+        <div v-if="categoryError" class="category-error" role="alert">
+          <span>{{ categoryError }}</span>
+          <button type="button" @click="fetchCategories">تلاش مجدد</button>
         </div>
 
         <div v-if="categoryData && categoryData.total_pages > 1" class="filter-pagination">
@@ -395,7 +511,7 @@ onMounted(async () => {
         <p v-if="searchQuery">محصولی با نام "{{ searchQuery }}" یافت نشد</p>
         <p v-else-if="selectedCategory">در این دسته‌بندی محصولی وجود ندارد</p>
         <p v-else>هیچ محصولی یافت نشد</p>
-        <button v-if="selectedCategory || searchQuery" @click="searchQuery = ''; selectCategory('')" class="empty-btn">
+        <button v-if="selectedCategory || searchQuery" @click="clearAllFilters" class="empty-btn">
           نمایش همه محصولات
         </button>
       </div>
@@ -431,7 +547,7 @@ onMounted(async () => {
       <div v-else-if="items.length > 0" class="simple-footer">
         <span>{{ items.length }} محصول</span>
         <span v-if="selectedCategory" class="footer-category">
-          • {{ selectedCategoryName }}
+          • {{ selectedCategoryLabel }}
         </span>
       </div>
     </div>
@@ -447,6 +563,26 @@ onMounted(async () => {
           @submit-order="submitOrder"
       />
     </div>
+    <CostToastHost />
+    <ProductCreateModal
+        v-model="showCreateProduct"
+        :categories="productCategories"
+        :loading="creatingProduct"
+        :server-error="createProductError"
+        :field-errors="createProductFieldErrors"
+        @submit="createProduct"
+    />
+    <ProductCategoryManager
+        v-model="showCategoryManager"
+        :categories="managedCategories"
+        :menus="productMenus"
+        :loading="loadingCategoryManager"
+        :saving="savingCategory"
+        :error="categoryManagerError"
+        :errors="categoryManagerFieldErrors"
+        @save="saveCategory"
+        @delete="deleteCategory"
+    />
   </div>
 </template>
 
@@ -514,6 +650,39 @@ onMounted(async () => {
   font-weight: 600;
   color: #1e293b;
 }
+
+.create-product-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 13px;
+  border: 0;
+  border-radius: 10px;
+  background: #8a5e3a;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.create-product-btn:hover { background: #744b2d; }
+
+.manage-category-btn {
+  padding: 8px 11px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  color: #475569;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.manage-category-btn:hover { border-color: #8a5e3a; color: #8a5e3a; }
 
 .title-icon {
   font-size: 22px;
@@ -674,6 +843,13 @@ onMounted(async () => {
 }
 
 /* ===== پنل فیلتر دسته‌بندی ===== */
+.category-filter-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99;
+  background: transparent;
+}
+
 .category-filter-panel {
   position: absolute;
   top: 180px;
@@ -686,6 +862,28 @@ onMounted(async () => {
   z-index: 100;
   padding: 16px;
   animation: slideIn 0.2s ease;
+}
+
+.category-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 11px;
+}
+
+.category-error button {
+  flex-shrink: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 @keyframes slideIn {
@@ -796,14 +994,6 @@ onMounted(async () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.filter-item-count {
-  font-size: 11px;
-  color: #64748b;
-  background: #f1f5f9;
-  padding: 2px 6px;
-  border-radius: 12px;
 }
 
 .sub-item {
@@ -1044,8 +1234,15 @@ onMounted(async () => {
     right: 0;
     left: 0;
     width: 100%;
+    max-height: min(78vh, 620px);
+    overflow-y: auto;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
     border-radius: 20px 20px 0 0;
     animation: slideUp 0.3s ease;
+  }
+
+  .category-filter-backdrop {
+    background: rgba(15, 23, 42, 0.38);
   }
 
   @keyframes slideUp {

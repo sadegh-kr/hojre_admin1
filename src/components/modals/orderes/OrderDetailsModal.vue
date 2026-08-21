@@ -1,5 +1,5 @@
 <template>
-  <BaseModal v-model="visible" size="xl" modal-class="order-details-modal" @close="close">
+  <BaseModal v-model="visible" size="xl" modal-class="order-details-modal" :show-close="false" @close="close">
     <template #header><div><p>سفارش #{{ order?.order_number || '—' }}</p><h3>جزئیات سفارش</h3></div><button class="modal-close-btn screen-only" @click="close" aria-label="بستن">×</button></template>
     <div class="invoice-print" dir="rtl">
       <div v-if="loading" class="state"><i></i>در حال دریافت جزئیات سفارش…</div>
@@ -20,6 +20,7 @@
 import { computed, ref, watch } from 'vue'
 import BaseModal from '@/components/modals/BaseModal.vue'
 import OrderApi from '@/api/order.api.js'
+import { getApiErrorMessage } from '@/api/error'
 
 const props = defineProps({ orderId: { type: String, default: null }, modelValue: Boolean })
 const emit = defineEmits(['update:modelValue', 'close', 'status-updated'])
@@ -30,7 +31,7 @@ const availableStatuses = computed(() => (transitions[order.value?.status] || []
 const number = value => Number(value || 0).toLocaleString('fa-IR')
 const money = value => `${number(value)} تومان`
 const formatDate = value => value ? new Intl.DateTimeFormat('fa-IR-u-ca-persian', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Tehran' }).format(new Date(value)) : '—'
-const errorText = cause => cause.order?.message || cause.response?.data?.message || cause.message || 'ارتباط با سرور برقرار نشد.'
+const errorText = cause => getApiErrorMessage(cause)
 async function load() { if (!props.orderId) return; loading.value = true; error.value = ''; statusError.value = ''; try { order.value = await OrderApi.getOrder(props.orderId); nextStatus.value = order.value.status } catch (cause) { error.value = errorText(cause) } finally { loading.value = false } }
 async function updateStatus() { if (!order.value || nextStatus.value === order.value.status || statusUpdating.value) return; statusUpdating.value = true; statusError.value = ''; try { order.value = await OrderApi.updateOrderStatus(order.value.id, { status: nextStatus.value }); nextStatus.value = order.value.status; emit('status-updated', order.value) } catch (cause) { nextStatus.value = order.value.status; statusError.value = errorText(cause) } finally { statusUpdating.value = false } }
 function close() { visible.value = false; emit('update:modelValue', false); emit('close') }

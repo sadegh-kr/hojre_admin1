@@ -1,322 +1,107 @@
-[file name]: BaseModal.vue
-[file content begin]
 <template>
-  <teleport to="body">
-    <div v-if="isVisible" class="modal-overlay" @click="handleOverlayClick">
-      <div class="modal-container" :class="modalClass" :style="modalStyle" @click.stop>
-        <!-- هدر مودال -->
-        <div class="modal-header">
-          <slot name="header">
-            <h3 v-if="title">{{ title }}</h3>
-            <button class="modal-close-btn" @click="close" aria-label="بستن">
-              ×
-            </button>
-          </slot>
-        </div>
-
-        <!-- بدنه مودال -->
-        <div class="modal-body">
-          <slot></slot>
-        </div>
-
-        <!-- فوتر مودال -->
-        <div v-if="$slots.footer" class="modal-footer">
-          <slot name="footer"></slot>
-        </div>
+  <Teleport to="body">
+    <Transition name="modal-fade">
+      <div v-if="modelValue" class="modal-overlay" @mousedown.self="handleOverlayClick">
+        <section
+          ref="dialog"
+          class="modal-container"
+          :class="[sizeClass, modalClass]"
+          :style="modalStyle"
+          role="dialog"
+          aria-modal="true"
+          :aria-labelledby="title ? titleId : undefined"
+          tabindex="-1"
+          @mousedown.stop
+        >
+          <header class="modal-header">
+            <slot name="header">
+              <h2 v-if="title" :id="titleId">{{ title }}</h2>
+            </slot>
+            <button
+              v-if="showClose"
+              type="button"
+              class="modal-close-btn"
+              :disabled="closeDisabled"
+              aria-label="بستن پنجره"
+              @click="close"
+            >×</button>
+          </header>
+          <div class="modal-body"><slot /></div>
+          <footer v-if="$slots.footer" class="modal-footer"><slot name="footer" /></footer>
+        </section>
       </div>
-    </div>
-  </teleport>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { computed, nextTick, onUnmounted, ref, watch } from 'vue'
 
 const props = defineProps({
-  // نمایش/عدم نمایش مودال
-  modelValue: {
-    type: Boolean,
-    default: false
-  },
-  // عنوان مودال
-  title: {
-    type: String,
-    default: ''
-  },
-  // اندازه مودال
-  size: {
-    type: String,
-    default: 'md',
-    validator: (value) => ['sm', 'md', 'lg', 'xl', 'full'].includes(value)
-  },
-  // کلاس‌های اضافی برای مودال
-  modalClass: {
-    type: [String, Array, Object],
-    default: ''
-  },
-  // استایل‌های اضافی برای مودال
-  modalStyle: {
-    type: Object,
-    default: () => ({})
-  },
-  // آیا با کلیک روی overlay بسته شود؟
-  closeOnOverlayClick: {
-    type: Boolean,
-    default: true
-  },
-  // آیا با کلید ESC بسته شود؟
-  closeOnEsc: {
-    type: Boolean,
-    default: true
-  },
-  // آیا اسکرول body غیرفعال شود؟
-  disableBodyScroll: {
-    type: Boolean,
-    default: true
-  }
-});
+  modelValue: Boolean,
+  title: { type: String, default: '' },
+  size: { type: String, default: 'md', validator: value => ['sm', 'md', 'lg', 'xl', 'full'].includes(value) },
+  modalClass: { type: [String, Array, Object], default: '' },
+  modalStyle: { type: Object, default: () => ({}) },
+  closeOnOverlayClick: { type: Boolean, default: true },
+  closeOnEsc: { type: Boolean, default: true },
+  closeDisabled: { type: Boolean, default: false },
+  showClose: { type: Boolean, default: true },
+  disableBodyScroll: { type: Boolean, default: true }
+})
 
-const emit = defineEmits([
-  'update:modelValue',
-  'open',
-  'close',
-  'before-close',
-  'after-close'
-]);
+const emit = defineEmits(['update:modelValue', 'open', 'close'])
+const dialog = ref(null)
+const titleId = `modal-title-${Math.random().toString(36).slice(2, 9)}`
+const sizeClass = computed(() => `modal-${props.size}`)
 
-const isVisible = ref(props.modelValue);
+function close() {
+  if (props.closeDisabled) return
+  emit('update:modelValue', false)
+  emit('close')
+}
+function handleOverlayClick() {
+  if (props.closeOnOverlayClick) close()
+}
+function handleKeydown(event) {
+  if (event.key === 'Escape' && props.closeOnEsc && props.modelValue) close()
+}
+function setBodyLock(locked) {
+  if (props.disableBodyScroll) document.body.style.overflow = locked ? 'hidden' : ''
+}
 
-// محاسبه اندازه مودال
-const sizeClasses = computed(() => {
-  const sizes = {
-    sm: 'modal-sm',
-    md: 'modal-md',
-    lg: 'modal-lg',
-    xl: 'modal-xl',
-    full: 'modal-full'
-  };
-  return sizes[props.size] || sizes.md;
-});
-
-// مدیریت کلیک روی overlay
-const handleOverlayClick = () => {
-  if (props.closeOnOverlayClick) {
-    close();
-  }
-};
-
-// بستن مودال
-const close = () => {
-  emit('before-close');
-  emit('update:modelValue', false);
-  emit('close');
-};
-
-// باز کردن مودال
-const open = () => {
-  emit('update:modelValue', true);
-  emit('open');
-};
-
-// مدیریت کلید ESC
-const handleEscKey = (event) => {
-  if (event.key === 'Escape' && props.closeOnEsc && isVisible.value) {
-    close();
-  }
-};
-
-// مدیریت اسکرول body
-const manageBodyScroll = (disable) => {
-  if (!props.disableBodyScroll) return;
-
-  if (disable) {
-    document.body.style.overflow = 'hidden';
+watch(() => props.modelValue, async visible => {
+  setBodyLock(visible)
+  if (visible) {
+    document.addEventListener('keydown', handleKeydown)
+    emit('open')
+    await nextTick()
+    dialog.value?.focus()
   } else {
-    document.body.style.overflow = '';
+    document.removeEventListener('keydown', handleKeydown)
   }
-};
+}, { immediate: true })
 
-// واچر برای تغییرات modelValue
-watch(() => props.modelValue, (newVal) => {
-  isVisible.value = newVal;
-  if (newVal) {
-    manageBodyScroll(true);
-    document.addEventListener('keydown', handleEscKey);
-  } else {
-    manageBodyScroll(false);
-    document.removeEventListener('keydown', handleEscKey);
-    emit('after-close');
-  }
-});
-
-// واچر برای isVisible
-watch(isVisible, (newVal) => {
-  if (!newVal && props.modelValue) {
-    emit('update:modelValue', false);
-  }
-});
-
-// تمیزکاری
-import { onUnmounted } from 'vue';
 onUnmounted(() => {
-  manageBodyScroll(false);
-  document.removeEventListener('keydown', handleEscKey);
-});
+  setBodyLock(false)
+  document.removeEventListener('keydown', handleKeydown)
+})
 
-// تعریف متدهای عمومی
-defineExpose({
-  open,
-  close,
-  isVisible
-});
+defineExpose({ close })
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 20px;
-  animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.modal-container {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-  max-height: 90vh;
-  display: flex;
-  flex-direction: column;
-  animation: slideUp 0.3s ease;
-  overflow: hidden;
-}
-
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* سایزهای مختلف مودال */
-.modal-sm { width: 400px; }
-.modal-md { width: 600px; }
-.modal-lg { width: 800px; }
-.modal-xl { width: 1000px; }
-.modal-full {
-  width: 95vw;
-  height: 95vh;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid #e9ecef;
-  background: #f8f9fa;
-  flex-shrink: 0;
-}
-
-.modal-header h3 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #2c3e50;
-}
-
-.modal-close-btn {
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  color: #6c757d;
-  cursor: pointer;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  transition: all 0.2s;
-}
-
-.modal-close-btn:hover {
-  background: #e9ecef;
-  color: #495057;
-}
-
-.modal-body {
-  padding: 24px;
-  overflow-y: auto;
-  flex: 1;
-}
-
-.modal-footer {
-  padding: 20px 24px;
-  border-top: 1px solid #e9ecef;
-  background: #f8f9fa;
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  flex-shrink: 0;
-}
-
-/* ریسپانسیو */
-@media (max-width: 768px) {
-  .modal-overlay {
-    padding: 10px;
-  }
-
-  .modal-sm,
-  .modal-md,
-  .modal-lg,
-  .modal-xl {
-    width: 95vw;
-    max-width: 95vw;
-  }
-
-  .modal-header {
-    padding: 16px 20px;
-  }
-
-  .modal-body {
-    padding: 20px;
-  }
-
-  .modal-footer {
-    padding: 16px 20px;
-  }
-}
-
-@media (max-width: 480px) {
-  .modal-header {
-    padding: 14px 16px;
-  }
-
-  .modal-body {
-    padding: 16px;
-  }
-
-  .modal-footer {
-    padding: 14px 16px;
-    flex-wrap: wrap;
-  }
-}
+.modal-overlay{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:24px;background:rgba(17,24,39,.62);backdrop-filter:blur(3px)}
+.modal-container{width:100%;max-height:calc(100dvh - 48px);display:flex;flex-direction:column;overflow:hidden;outline:0;background:var(--surface,#fff);color:var(--text,#1f2937);border:1px solid var(--border,#e5e7eb);border-radius:16px;box-shadow:0 24px 70px rgba(17,24,39,.28)}
+.modal-sm{max-width:420px}.modal-md{max-width:600px}.modal-lg{max-width:800px}.modal-xl{max-width:1040px}.modal-full{width:calc(100vw - 48px);height:calc(100dvh - 48px)}
+.modal-header,.modal-footer{display:flex;align-items:center;gap:16px;flex-shrink:0;padding:20px 24px;background:var(--surface,#fff)}
+.modal-header{justify-content:space-between;border-bottom:1px solid var(--border,#e5e7eb)}
+.modal-footer{justify-content:flex-end;border-top:1px solid var(--border,#e5e7eb)}
+.modal-header h2{margin:0;font-size:1.2rem;font-weight:800}
+.modal-close-btn{width:36px;height:36px;display:grid;place-items:center;flex:0 0 auto;padding:0;border:0;border-radius:9px;background:var(--surface-subtle,#f3f4f6);color:var(--muted,#6b7280);font:inherit;font-size:1.4rem;cursor:pointer}
+.modal-close-btn:hover{background:var(--border,#e5e7eb);color:var(--text,#1f2937)}.modal-close-btn:focus-visible{outline:3px solid color-mix(in srgb,var(--primary,#8a5e3a) 25%,transparent)}.modal-close-btn:disabled{opacity:.5;cursor:not-allowed}
+.modal-body{min-height:0;overflow:auto;padding:24px}
+.modal-fade-enter-active,.modal-fade-leave-active{transition:opacity .18s ease}.modal-fade-enter-active .modal-container,.modal-fade-leave-active .modal-container{transition:transform .18s ease}.modal-fade-enter-from,.modal-fade-leave-to{opacity:0}.modal-fade-enter-from .modal-container,.modal-fade-leave-to .modal-container{transform:translateY(12px) scale(.985)}
+@media(max-width:640px){.modal-overlay{align-items:end;padding:0}.modal-container,.modal-sm,.modal-md,.modal-lg,.modal-xl{max-width:none;max-height:100dvh;height:100dvh;border-radius:0;border:0}.modal-header,.modal-footer{padding:16px}.modal-body{padding:16px}.modal-footer>:deep(button){flex:1}}
+@media(prefers-reduced-motion:reduce){.modal-fade-enter-active,.modal-fade-leave-active,.modal-fade-enter-active .modal-container,.modal-fade-leave-active .modal-container{transition:none}}
 </style>
-[file content end]

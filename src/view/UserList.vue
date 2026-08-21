@@ -21,6 +21,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import AdminDataTable from '@/components/admin/AdminDataTable.vue'
 import UserDetailsModal from '@/components/modals/user/UserDetailsModal.vue'
 import UserAPI from '@/api/user.api.js'
+import { getApiErrorMessage } from '@/api/error'
 
 const rows = ref([]), total = ref(0), page = ref(1), pageSize = ref(10), ordering = ref('-created'), loading = ref(false), initialLoading = ref(true), error = ref(''), selectedId = ref(null), showModal = ref(false)
 const draft = reactive({ search: '', has_address: '', min_delivered_orders: '' })
@@ -29,7 +30,7 @@ const columns = [{ key: 'name', label: 'مشتری', sortable: true }, { key: 'p
 let timer
 const hasFilters = computed(() => Object.values(applied).some(Boolean))
 function params() { const value = { page: page.value, page_size: pageSize.value, ordering: ordering.value }; Object.entries(applied).forEach(([key, item]) => { if (item !== '') value[key] = item }); return value }
-async function fetchCustomers() { loading.value = true; error.value = ''; try { const { data } = await UserAPI.getCustomerList(params()); rows.value = data.results || []; total.value = data.count || 0; page.value = data.page || page.value } catch (err) { error.value = err.response?.data?.message || err.response?.data?.error || 'ارتباط با سرور برقرار نشد.' } finally { loading.value = false; initialLoading.value = false } }
+async function fetchCustomers() { loading.value = true; error.value = ''; try { const { data } = await UserAPI.getCustomerList(params()); rows.value = data.results || []; total.value = data.count || 0; page.value = data.page || page.value } catch (err) { error.value = getApiErrorMessage(err) } finally { loading.value = false; initialLoading.value = false } }
 function applyFilters() { Object.assign(applied, draft); page.value = 1; fetchCustomers() }
 function debouncedApply() { clearTimeout(timer); timer = setTimeout(applyFilters, 450) }
 function clearFilters() { Object.keys(draft).forEach(key => { draft[key] = ''; applied[key] = '' }); page.value = 1; fetchCustomers() }

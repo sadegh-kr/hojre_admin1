@@ -1,0 +1,32 @@
+<template>
+  <section class="cost-page">
+    <header class="cost-page-heading"><div><h2>دستور تولید محصولات</h2><p>محصول را انتخاب کنید و ترکیب مواد موردنیاز آن را مدیریت کنید.</p></div><aside class="next-step">ابتدا قیمت و واحد مواد را در <RouterLink to="/dashboard/cost-control/materials">مواد اولیه</RouterLink> ثبت کنید.</aside></header>
+    <form class="cost-filter" @submit.prevent="applyFilters"><input v-model.trim="draft.search" placeholder="جستجوی نام محصول" @input="debouncedSearch"/><select v-model="draft.category" @change="applyFilters"><option value="">همه دسته‌ها</option><option v-for="category in meta.categories" :key="category.id" :value="category.id">{{category.name}}</option></select><select v-model="draft.is_active" @change="applyFilters"><option value="">همه وضعیت‌ها</option><option value="true">فعال</option><option value="false">غیرفعال</option></select><button class="cost-primary">اعمال فیلتر</button><button type="button" class="cost-text" @click="clearFilters">پاک کردن</button><button type="button" class="cost-primary add" @click="newProduct">+ محصول جدید</button></form>
+    <div v-if="error" class="cost-notice" role="alert">{{error}} <button type="button" @click="loadProducts">تلاش مجدد</button></div>
+    <AdminDataTable title="فهرست محصولات" :rows="products" :columns="columns" :total="pagination.count" :page="pagination.page" :page-size="pagination.page_size" :sort="filters.ordering" :loading="loading" :initial-loading="initialLoading" :error="''" :has-filters="hasFilters" empty-title="محصولی پیدا نشد" @sort="sortProducts" @page="goPage" @page-size="setPageSize" @clear="clearFilters">
+      <template #cell-name="{row}"><div class="product-name"><img v-if="row.image_url" :src="row.image_url" alt=""/><strong>{{row.name}}</strong><small>{{row.category_name}}</small></div></template><template #cell-price="{row}">{{money(row.price)}}</template><template #cell-is_active="{row}"><button :class="['status',row.is_active?'on':'off']" @click="toggleProduct(row)">{{row.is_active?'فعال':'غیرفعال'}}</button></template><template #cell-final_production_cost="{row}">{{money(row.final_production_cost)}}</template><template #cell-profit_amount="{row}"><strong :class="Number(row.profit_amount)<0?'loss':'profit'">{{money(row.profit_amount)}}</strong><small>{{number(row.profit_margin)}}٪ حاشیه سود</small></template><template #mobile-title="{row}">{{row.name}}</template><template #actions="{row}"><button class="row-action" @click="editProduct(row)">ویرایش</button><button class="row-action" @click="openRecipe(row)">دستور تولید</button><button class="danger-action" @click="deleteProduct(row)">حذف</button></template>
+    </AdminDataTable>
+    <ProductPricingModal v-model="formOpen" :product="editingProduct" :categories="meta.categories" :loading="saving" :server-error="formError" :field-errors="formFieldErrors" @submit="saveProduct" />
+  </section>
+</template>
+<script setup>
+import { computed,onBeforeUnmount,onMounted,reactive,ref } from 'vue'
+import { useRouter } from 'vue-router'
+import AdminDataTable from '@/components/admin/AdminDataTable.vue'
+import ProductPricingModal from '@/components/modals/ProductPricingModal.vue'
+import API from '@/api/product-cost.api.js'
+import { costErrorMessage,formatCostNumber as number,formatMoney as money } from '@/utils/costControl'
+const router=useRouter(),products=ref([]),loading=ref(false),initialLoading=ref(true),error=ref(''),formError=ref(''),formFieldErrors=ref({}),saving=ref(false),formOpen=ref(false),editingProduct=ref(null)
+const meta=reactive({categories:[]}),pagination=reactive({count:0,page:1,page_size:10}),filters=reactive({search:'',category:'',is_active:'',ordering:'-created'}),draft=reactive({...filters})
+const columns=[{key:'name',label:'محصول',sortable:true},{key:'price',label:'قیمت فروش',sortable:true},{key:'is_active',label:'وضعیت',sortable:true},{key:'final_production_cost',label:'بهای تمام‌شده'},{key:'profit_amount',label:'سود'}]
+const hasFilters=computed(()=>Boolean(filters.search||filters.category||filters.is_active));let searchTimer
+const params=()=>Object.fromEntries(Object.entries({...filters,page:pagination.page,page_size:pagination.page_size}).filter(([,value])=>value!==''))
+async function loadSetup(){try{Object.assign(meta,await API.meta())}catch(cause){error.value=costErrorMessage(cause)}}
+async function loadProducts(){loading.value=true;error.value='';try{const data=await API.products(params());products.value=data.results||[];Object.assign(pagination,data)}catch(cause){error.value=costErrorMessage(cause)}finally{loading.value=false;initialLoading.value=false}}
+function applyFilters(){Object.assign(filters,draft);pagination.page=1;loadProducts()}function debouncedSearch(){clearTimeout(searchTimer);searchTimer=setTimeout(applyFilters,400)}function clearFilters(){Object.assign(filters,{search:'',category:'',is_active:'',ordering:'-created'});Object.assign(draft,filters);pagination.page=1;loadProducts()}function sortProducts(value){filters.ordering=value;pagination.page=1;loadProducts()}function goPage(value){pagination.page=value;loadProducts()}function setPageSize(value){pagination.page_size=value;pagination.page=1;loadProducts()}
+function resetProduct(){editingProduct.value=null;formError.value='';formFieldErrors.value={}}function newProduct(){resetProduct();formOpen.value=true}function editProduct(row){editingProduct.value=row;formError.value='';formFieldErrors.value={};formOpen.value=true}
+async function saveProduct(payload){if(saving.value)return;saving.value=true;formError.value='';formFieldErrors.value={};try{if(editingProduct.value)await API.updateProduct(editingProduct.value.id,payload);else await API.createProduct(payload);formOpen.value=false;resetProduct();await loadProducts()}catch(cause){formError.value=costErrorMessage(cause);formFieldErrors.value=cause.cost?.errors||{}}finally{saving.value=false}}
+async function toggleProduct(row){try{await API.updateProduct(row.id,{is_active:!row.is_active});await loadProducts()}catch(cause){error.value=costErrorMessage(cause)}}async function deleteProduct(row){if(!confirm(`محصول «${row.name}» حذف شود؟`))return;try{await API.deleteProduct(row.id);await loadProducts()}catch(cause){error.value=costErrorMessage(cause)}}
+function openRecipe(row){router.push({name:'product-recipe',params:{productId:row.id}})}
+onMounted(()=>Promise.all([loadSetup(),loadProducts()]));onBeforeUnmount(()=>clearTimeout(searchTimer))
+</script>

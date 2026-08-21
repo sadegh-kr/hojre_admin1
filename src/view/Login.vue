@@ -224,6 +224,7 @@
 <script>
 import { useAuthStore } from '@/store/auth'
 import { useRouter } from 'vue-router'
+import { getApiErrorMessage } from '@/api/error'
 export default {
   name: 'AdminLogin',
 
@@ -330,11 +331,7 @@ export default {
           timestamp: new Date().toISOString()
         })
       } catch (err) {
-        console.log(err)
-        this.showError(
-            err.response?.data?.error ||
-            'خطا در ورود به سیستم'
-        )
+        this.showError(getApiErrorMessage(err, 'ورود به سیستم انجام نشد.'))
       } finally {
         this.isLoading = false
       }

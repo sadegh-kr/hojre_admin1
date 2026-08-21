@@ -39,7 +39,7 @@ const extractMetadata = (data) => {
 export function useTransactionList(queryParams = ref({}), options = {}) {
     return useQuery({
         queryKey: ['transactions', queryParams],
-        queryFn: () => TransactionAPI.getList(queryParams.value).then(res => res.data),
+        queryFn: () => TransactionAPI.getList(queryParams.value),
         ...options
     })
 }
@@ -47,7 +47,7 @@ export function useTransactionList(queryParams = ref({}), options = {}) {
 export function useTransactionDetail(identifier, options = {}) {
     return useQuery({
         queryKey: ['transaction', identifier],
-        queryFn: () => TransactionAPI.getDetail(identifier).then(res => res.data),
+        queryFn: () => TransactionAPI.getDetail(identifier),
         enabled: !!identifier,
         ...options
     })
@@ -56,7 +56,7 @@ export function useTransactionDetail(identifier, options = {}) {
 export function useTransactionSummary(queryParams = ref({}), options = {}) {
     return useQuery({
         queryKey: ['transaction-summary', queryParams],
-        queryFn: () => TransactionAPI.getSummary(queryParams.value).then(res => res.data),
+        queryFn: () => TransactionAPI.getSummary(queryParams.value),
         ...options
     })
 }
@@ -64,7 +64,7 @@ export function useTransactionSummary(queryParams = ref({}), options = {}) {
 export function useMonthlyReport(queryParams = ref({}), options = {}) {
     return useQuery({
         queryKey: ['monthly-report', queryParams],
-        queryFn: () => TransactionAPI.getMonthlyReport(queryParams.value).then(res => res.data),
+        queryFn: () => TransactionAPI.getMonthlyReport(queryParams.value),
         ...options
     })
 }
@@ -72,7 +72,7 @@ export function useMonthlyReport(queryParams = ref({}), options = {}) {
 export function useTransactionStatistics(queryParams = ref({}), options = {}) {
     return useQuery({
         queryKey: ['transaction-statistics', queryParams],
-        queryFn: () => TransactionAPI.getStatistics(queryParams.value).then(res => res.data),
+        queryFn: () => TransactionAPI.getStatistics(queryParams.value),
         ...options
     })
 }
@@ -82,7 +82,7 @@ export function useTransactionStatistics(queryParams = ref({}), options = {}) {
 export function useCategoryList(queryParams = ref({}), options = {}) {
     return useQuery({
         queryKey: ['categories', queryParams],
-        queryFn: () => TransactionAPI.getCategoryList(queryParams.value).then(res => res.data),
+        queryFn: () => TransactionAPI.getCategoryList(queryParams.value),
         ...options
     })
 }
@@ -90,7 +90,7 @@ export function useCategoryList(queryParams = ref({}), options = {}) {
 export function useCategoryDetail(categoryId, options = {}) {
     return useQuery({
         queryKey: ['category', categoryId],
-        queryFn: () => TransactionAPI.getCategoryDetail(categoryId).then(res => res.data),
+        queryFn: () => TransactionAPI.getCategoryDetail(categoryId),
         enabled: !!categoryId,
         ...options
     })
@@ -182,7 +182,7 @@ export function useCreateTransaction(options = {}) {
     const queryClient = useQueryClient()
     
     return useMutation({
-        mutationFn: (data) => TransactionAPI.create(data).then(res => res.data),
+        mutationFn: (data) => TransactionAPI.create(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['transactions'] })
             queryClient.invalidateQueries({ queryKey: ['transaction-summary'] })
@@ -196,7 +196,7 @@ export function useUpdateTransaction(options = {}) {
     const queryClient = useQueryClient()
     
     return useMutation({
-        mutationFn: ({ identifier, data }) => TransactionAPI.update(identifier, data).then(res => res.data),
+        mutationFn: ({ identifier, data }) => TransactionAPI.update(identifier, data),
         onSuccess: (data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['transactions'] })
             queryClient.invalidateQueries({ queryKey: ['transaction', variables.identifier] })
@@ -211,7 +211,7 @@ export function usePartialUpdateTransaction(options = {}) {
     const queryClient = useQueryClient()
     
     return useMutation({
-        mutationFn: ({ identifier, data }) => TransactionAPI.partialUpdate(identifier, data).then(res => res.data),
+        mutationFn: ({ identifier, data }) => TransactionAPI.partialUpdate(identifier, data),
         onSuccess: (data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['transactions'] })
             queryClient.invalidateQueries({ queryKey: ['transaction', variables.identifier] })
@@ -226,7 +226,7 @@ export function useDeleteTransaction(options = {}) {
     const queryClient = useQueryClient()
     
     return useMutation({
-        mutationFn: (identifier) => TransactionAPI.delete(identifier).then(res => res.data),
+        mutationFn: (identifier) => TransactionAPI.delete(identifier),
         onSuccess: (data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['transactions'] })
             queryClient.invalidateQueries({ queryKey: ['transaction', variables] })
@@ -243,7 +243,7 @@ export function useCreateCategory(options = {}) {
     const queryClient = useQueryClient()
     
     return useMutation({
-        mutationFn: (data) => TransactionAPI.createCategory(data).then(res => res.data),
+        mutationFn: (data) => TransactionAPI.createCategory(data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['categories'] })
         },
@@ -255,7 +255,7 @@ export function useUpdateCategory(options = {}) {
     const queryClient = useQueryClient()
     
     return useMutation({
-        mutationFn: ({ categoryId, data }) => TransactionAPI.updateCategory(categoryId, data).then(res => res.data),
+        mutationFn: ({ categoryId, data }) => TransactionAPI.updateCategory(categoryId, data),
         onSuccess: (data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['categories'] })
             queryClient.invalidateQueries({ queryKey: ['category', variables.categoryId] })
@@ -268,7 +268,7 @@ export function useDeleteCategory(options = {}) {
     const queryClient = useQueryClient()
     
     return useMutation({
-        mutationFn: (categoryId) => TransactionAPI.deleteCategory(categoryId).then(res => res.data),
+        mutationFn: (categoryId) => TransactionAPI.deleteCategory(categoryId),
         onSuccess: (data, variables) => {
             queryClient.invalidateQueries({ queryKey: ['categories'] })
             queryClient.invalidateQueries({ queryKey: ['category', variables] })

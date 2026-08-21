@@ -1,11 +1,12 @@
 // src/api/OrderAPI.js
 import BaseAPI from './BaseAPI.js'
 import { useCostToast } from '@/composables/useCostToast'
+import { getApiErrorMessage } from '@/api/error'
 
 class OrderAPI extends BaseAPI {
     constructor() {
         super()
-        this.basePath = '/api/order/v2/'  // مسیر اصلی API سفارش‌ها
+        this.basePath = 'order/v2/'
     }
 
     // لیست سفارش‌ها برای یک رستوران
@@ -16,13 +17,13 @@ class OrderAPI extends BaseAPI {
     async request(promise, notify = false) {
         try {
             const { data } = await promise
-            if (!data?.success) { const error = new Error(data?.message || 'انجام عملیات امکان‌پذیر نیست.'); error.order = data; throw error }
+            if (!data?.success) { const error = new Error(data?.message || 'پاسخ نامعتبر از سرور دریافت شد.'); error.order = data; throw error }
             if (notify) useCostToast().success(data.message)
             return data.data
         } catch (error) {
             const payload = error.order || error.response?.data
-            if (notify && payload?.message) useCostToast().error(payload.message)
             error.order = payload
+            if (notify) useCostToast().error(getApiErrorMessage(error))
             throw error
         }
     }

@@ -1,27 +1,14 @@
 // src/api/BaseAPI.js
 import axios from 'axios'
 import router from '@/router'
-// import { BASE_URL } from '../../config.js'
 import { useAuthStore } from '@/store/auth'
-export const getBaseUrl = () => {
-    if (window.__CONFIG__ && window.__CONFIG__.BASE_URL) {
-        return window.__CONFIG__.BASE_URL
-    }
+import { API_BASE_URL } from '@/config/api'
+import { getApiErrorMessage } from '@/api/error'
 
-    if (import.meta.env.VITE_BASE_URL) {
-        return import.meta.env.VITE_BASE_URL
-    }
-
-    // Vite proxies /api to Django in development; production supplies
-    // VITE_BASE_URL from .env.production or deployment configuration.
-    return '/'
-}
-
-export const BASE_URL = getBaseUrl()
 class BaseAPI {
     constructor() {
         this.api = axios.create({
-            baseURL: BASE_URL,
+            baseURL: API_BASE_URL,
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -46,10 +33,13 @@ class BaseAPI {
             response => response,
             async (error) => {
                 const authStore = useAuthStore()
+                error.apiMessage = getApiErrorMessage(error)
 
                 if (error.response?.status === 401) {
                     authStore.logout()
-                    router.push('/login')
+                    if (router.currentRoute.value.path !== '/login') {
+                        router.push('/login')
+                    }
                 }
 
                 return Promise.reject(error)
