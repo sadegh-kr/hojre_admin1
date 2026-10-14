@@ -148,13 +148,13 @@ const decreaseQuantity = (item) => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: white;
+  background: var(--surface);
   min-width: 380px;
   max-width: 380px;
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--border);
 }
 
 /* ===== هدر فاکتور ===== */
@@ -163,9 +163,9 @@ const decreaseQuantity = (item) => {
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
-  border-bottom: 1px solid #eef2f6;
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  background: white;
+  background: var(--surface);
 }
 
 .header-right {
@@ -176,21 +176,21 @@ const decreaseQuantity = (item) => {
 
 .invoice-icon {
   font-size: 22px;
-  color: #4CAF50;
+  color: var(--color-success);
 }
 
 .invoice-header h3 {
   margin: 0;
   font-size: 18px;
-  color: #0f172a;
+  color: var(--text);
   font-weight: 700;
 }
 
 .clear-all-btn {
   font-size: 12px;
-  color: #ef4444;
+  color: var(--color-danger);
   background: none;
-  border: 1px solid #fee2e2;
+  border: 1px solid var(--color-danger-subtle);
   padding: 6px 14px;
   border-radius: 8px;
   cursor: pointer;
@@ -200,15 +200,15 @@ const decreaseQuantity = (item) => {
 }
 
 .clear-all-btn:hover {
-  background: #fee2e2;
-  border-color: #fecaca;
+  background: var(--color-danger-subtle);
+  border-color: var(--color-danger);
 }
 
 /* ===== کانتینر آیتم‌ها با اسکرول ===== */
 .invoice-items-container {
   flex: 1;
   min-height: 0;
-  background: #f8fafc;
+  background: var(--surface-subtle);
   overflow-y: auto;
 }
 
@@ -226,7 +226,7 @@ const decreaseQuantity = (item) => {
   align-items: center;
   justify-content: center;
   height: 300px;
-  color: #94a3b8;
+  color: var(--muted);
   text-align: center;
   padding: 20px;
 }
@@ -241,18 +241,18 @@ const decreaseQuantity = (item) => {
   font-size: 16px;
   font-weight: 600;
   margin-bottom: 8px;
-  color: #475569;
+  color: var(--text);
 }
 
 .empty-invoice small {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--muted);
 }
 
 /* ===== ردیف آیتم ===== */
 .invoice-row {
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--surface-elevated);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px;
   flex-shrink: 0;
@@ -260,7 +260,7 @@ const decreaseQuantity = (item) => {
 }
 
 .invoice-row:hover {
-  border-color: #cbd5e1;
+  border-color: var(--border-strong);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
 }
 
@@ -277,8 +277,8 @@ const decreaseQuantity = (item) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--surface-subtle);
+  color: var(--text);
   border-radius: 6px;
   font-size: 11px;
   font-weight: 700;
@@ -288,7 +288,7 @@ const decreaseQuantity = (item) => {
 .item-name {
   font-size: 14px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -304,7 +304,7 @@ const decreaseQuantity = (item) => {
 
 .item-price {
   font-size: 12px;
-  color: #64748b;
+  color: var(--muted);
   min-width: 70px;
   font-weight: 500;
 }
@@ -314,7 +314,7 @@ const decreaseQuantity = (item) => {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #f8fafc;
+  background: var(--surface-subtle);
   padding: 2px;
   border-radius: 8px;
   flex-shrink: 0;
@@ -327,20 +327,20 @@ const decreaseQuantity = (item) => {
   align-items: center;
   justify-content: center;
   border: none;
-  background: white;
+  background: var(--surface-elevated);
   border-radius: 6px;
   cursor: pointer;
   font-size: 18px;
-  color: #475569;
+  color: var(--text);
   transition: all 0.2s;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   flex-shrink: 0;
 }
 
 .qty-btn:hover {
-  background: #4CAF50;
-  border-color: #4CAF50;
-  color: white;
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: var(--on-success);
 }
 
 .qty-btn:active {
@@ -352,14 +352,14 @@ const decreaseQuantity = (item) => {
   text-align: center;
   font-weight: 700;
   font-size: 14px;
-  color: #0f172a;
+  color: var(--text);
 }
 
 /* ===== قیمت‌ها ===== */
 .row-total {
   font-size: 14px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--text);
   min-width: 90px;
   text-align: left;
   white-space: nowrap;
@@ -379,15 +379,15 @@ const decreaseQuantity = (item) => {
 
 .remove-btn:hover {
   opacity: 1;
-  background: #fee2e2;
+  background: var(--color-danger-subtle);
 }
 
 /* ===== خلاصه فاکتور ===== */
 .invoice-summary {
   padding: 20px 24px;
-  background: white;
-  border-top: 1px solid #eef2f6;
-  border-bottom: 1px solid #eef2f6;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
@@ -396,23 +396,23 @@ const decreaseQuantity = (item) => {
   justify-content: space-between;
   padding: 10px 0;
   font-size: 15px;
-  color: #475569;
+  color: var(--muted);
 }
 
 .summary-row.tax {
-  border-bottom: 1px dashed #e2e8f0;
+  border-bottom: 1px dashed var(--border);
   padding-bottom: 14px;
 }
 
 .summary-row.total {
   font-size: 20px;
   font-weight: 800;
-  color: #0f172a;
+  color: var(--text);
   padding-top: 14px;
 }
 
 .total-amount {
-  color: #4CAF50;
+  color: var(--color-success);
   font-size: 22px;
 }
 
@@ -420,14 +420,14 @@ const decreaseQuantity = (item) => {
 .invoice-actions {
   padding: 20px 24px;
   flex-shrink: 0;
-  background: white;
+  background: var(--surface);
 }
 
 .btn-register {
   width: 100%;
   padding: 16px;
-  background: #4CAF50;
-  color: white;
+  background: var(--color-success);
+  color: var(--on-success);
   border: none;
   border-radius: 12px;
   font-size: 16px;
@@ -442,7 +442,7 @@ const decreaseQuantity = (item) => {
 }
 
 .btn-register:hover {
-  background: #45a049;
+  background: var(--color-success-hover);
   transform: translateY(-2px);
   box-shadow: 0 8px 20px rgba(76, 175, 80, 0.3);
 }
@@ -462,16 +462,16 @@ const decreaseQuantity = (item) => {
 }
 
 .invoice-items-container::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--surface-subtle);
 }
 
 .invoice-items-container::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--border-strong);
   border-radius: 4px;
 }
 
 .invoice-items-container::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--muted);
 }
 
 /* ===== حالت موبایل ===== */

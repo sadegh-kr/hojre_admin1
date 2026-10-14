@@ -45,8 +45,8 @@ defineEmits(['add'])
   align-items: center;
   gap: 10px;
   padding: 8px 12px;
-  background: white;
-  border: 1px solid #edf2f7;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s;
@@ -56,8 +56,8 @@ defineEmits(['add'])
 }
 
 .item-card:hover {
-  border-color: #4CAF50;
-  background: #fafffa;
+  border-color: var(--color-success);
+  background: var(--color-success-subtle);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(76, 175, 80, 0.12);
 }
@@ -66,7 +66,7 @@ defineEmits(['add'])
   width: 48px;
   height: 48px;
   flex-shrink: 0;
-  background: #f1f5f9;
+  background: var(--surface-subtle);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -85,7 +85,7 @@ defineEmits(['add'])
 .item-name {
   font-size: 12px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text);
   margin-bottom: 4px;
   white-space: nowrap;
   overflow: hidden;
@@ -94,7 +94,7 @@ defineEmits(['add'])
 
 .item-price {
   font-size: 11px;
-  color: #4CAF50;
+  color: var(--color-success);
   font-weight: 700;
 }
 
@@ -104,8 +104,8 @@ defineEmits(['add'])
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #4CAF50;
-  color: white;
+  background: var(--color-success);
+  color: var(--on-success);
   border-radius: 6px;
   opacity: 0;
   transition: opacity 0.2s;

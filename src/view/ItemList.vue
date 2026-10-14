@@ -1,6 +1,7 @@
 <!-- ItemList.vue -->
 <script setup>
-import { ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import itemApi from "@/api/item.api.js";
 import orderApi from '@/api/order.api.js'
 import ItemCalculator from "@/components/item/ItemCalculator.vue";
@@ -11,6 +12,9 @@ import ProductCategoryManager from '@/components/modals/ProductCategoryManager.v
 import { useCostToast } from '@/composables/useCostToast'
 import { getApiErrorMessage } from '@/api/error'
 import productCostApi from '@/api/product-cost.api'
+import restaurantApi from '@/api/restaurant.api'
+import loyaltyApi from '@/api/loyalty.api'
+import CustomerQuickSearch from '@/components/loyalty/CustomerQuickSearch.vue'
 
 // ========== حالت‌ها ==========
 const loading = ref(true)
@@ -40,6 +44,58 @@ const loadingCategoryManager = ref(false)
 const savingCategory = ref(false)
 const categoryManagerError = ref('')
 const categoryManagerFieldErrors = ref({})
+const route = useRoute()
+const router = useRouter()
+const orderType = computed(() => route.meta.orderType === 'phone' ? 'phone' : 'in_store')
+const selectedCustomer = ref(null)
+const selectedCustomerDetails = ref(null)
+const branches = ref([])
+const selectedBranch = ref('')
+const selectedAddress = ref('')
+const selectedDelivery = ref('takeoutN')
+
+watch(selectedCustomer, async customer => {
+  selectedCustomerDetails.value = null
+  selectedAddress.value = ''
+  if (!customer) return
+  try { selectedCustomerDetails.value = await loyaltyApi.customer(customer.customer_id) }
+  catch (cause) { toast.error(getApiErrorMessage(cause)) }
+})
+
+async function fetchBranches() {
+  try {
+    const response = await restaurantApi.listBranch()
+    const payload = response.data?.data || response.data
+    branches.value = payload?.results || payload || []
+    if (branches.value.length === 1) selectedBranch.value = branches.value[0].id
+  } catch (cause) { toast.error(getApiErrorMessage(cause)) }
+}
+
+function registerCustomer(phone = '') {
+  router.push({ path: '/dashboard/loyalty/customers/new', query: phone.length >= 10 ? { phone } : {} })
+}
+
+function reorderPrevious(order) {
+  let unavailable = 0
+  for (const line of order.items || []) {
+    const product = items.value.find(item => String(item.id) === String(line.item_id))
+    if (!product || product.is_active === false) { unavailable += 1; continue }
+    if (line.item_option_id) {
+      const option = product.options?.find(item => String(item.id) === String(line.item_option_id))
+      if (!option) { unavailable += 1; continue }
+      const invoiceId = `option-${option.id}`
+      const existing = invoiceItems.value.find(item => item.id === invoiceId)
+      if (existing) existing.quantity += line.quantity
+      else invoiceItems.value.push({ ...product, id: invoiceId, name: `${product.name} - ${option.name}`, price: Number(option.price), quantity: line.quantity, _item_option_id: option.id })
+    } else {
+      const existing = invoiceItems.value.find(item => String(item.id) === String(product.id))
+      if (existing) existing.quantity += line.quantity
+      else invoiceItems.value.push({ ...product, price: Number(product.price), quantity: line.quantity })
+    }
+  }
+  if (unavailable) toast.error(`${unavailable.toLocaleString('fa-IR')} قلم حذف‌شده یا خارج از فهرست جاری بود و اضافه نشد.`)
+  else toast.success('اقلام موجود با قیمت‌های جاری به فاکتور اضافه شدند.')
+}
 
 // ========== صفحه‌بندی ==========
 const currentPage = ref(1)
@@ -170,7 +226,12 @@ const submitOrder = async () => {
   submittingOrder.value = true
   try {
     const response = await orderApi.createOrderInStore({
-      items: invoiceItems.value.map(item => ({ item_id: item.id, quantity: item.quantity }))
+      items: invoiceItems.value.map(item => item._item_option_id ? { item_option_id: item._item_option_id, quantity: item.quantity } : { item_id: item.id, quantity: item.quantity }),
+      branch_id: selectedBranch.value || undefined,
+      customer_id: selectedCustomer.value?.customer_id || null,
+      address_id: selectedAddress.value || null,
+      order_type: orderType.value,
+      delivery: orderType.value === 'phone' ? selectedDelivery.value : 'dine-in'
     })
     if (!response.data?.success) {
       const requestError = new Error(response.data?.error || response.data?.message || 'سفارش ثبت نشد.')
@@ -179,6 +240,7 @@ const submitOrder = async () => {
     }
     const orderNumber = response.data.data?.order_number
     invoiceItems.value = []
+    selectedCustomer.value = null
     toast.success(orderNumber ? `سفارش شماره ${orderNumber} ثبت شد.` : 'سفارش با موفقیت ثبت شد.')
   } catch (cause) {
     toast.error(getApiErrorMessage(cause))
@@ -327,8 +389,7 @@ const prevCategoryPage = () => {
 
 // ========== اجرای اولیه ==========
 onMounted(async () => {
-  await fetchCategories()
-  await fetchItems()
+  await Promise.all([fetchCategories(), fetchItems(), fetchBranches()])
 })
 onBeforeUnmount(() => {
   clearTimeout(itemSearchTimer)
@@ -554,6 +615,28 @@ onBeforeUnmount(() => {
 
     <!-- سمت چپ: فاکتور -->
     <div class="invoice-section">
+      <div class="pos-customer-panel">
+        <CustomerQuickSearch v-model="selectedCustomer" :registration-source="orderType" />
+        <label class="pos-field">شعبه سفارش
+          <select v-model="selectedBranch" required>
+            <option value="" disabled>انتخاب شعبه مجاز</option>
+            <option v-for="branch in branches" :key="branch.id" :value="branch.id">{{ branch.name }}</option>
+          </select>
+        </label>
+        <label v-if="orderType === 'phone' && selectedCustomerDetails?.addresses?.length" class="pos-field">آدرس تحویل
+          <select v-model="selectedAddress">
+            <option value="">بدون آدرس / دریافت حضوری</option>
+            <option v-for="address in selectedCustomerDetails.addresses" :key="address.id" :value="address.id">{{ address.name }} — {{ address.detail }}</option>
+          </select>
+        </label>
+        <label v-if="orderType === 'phone'" class="pos-field">روش تحویل
+          <select v-model="selectedDelivery"><option value="takeoutN">ارسال/بیرون‌بر، پرداخت‌نشده</option><option value="dine-in">صرف در محل</option></select>
+        </label>
+        <p v-if="orderType === 'phone' && selectedCustomerDetails" class="previous-orders">{{ selectedCustomerDetails.orders?.length || 0 }} سفارش قبلی؛ قیمت و موجودی سفارش جدید از فهرست جاری محاسبه می‌شود.</p>
+        <div v-if="orderType === 'phone' && selectedCustomerDetails?.orders?.length" class="previous-order-list">
+          <button v-for="order in selectedCustomerDetails.orders.slice(0,5)" :key="order.id" type="button" class="admin-button admin-button--secondary admin-button--sm" @click="reorderPrevious(order)">تکرار سفارش {{ order.order_number }}</button>
+        </div>
+      </div>
       <ItemCalculator
           :items="invoiceItems"
           :submitting="submittingOrder"
@@ -592,7 +675,8 @@ onBeforeUnmount(() => {
   grid-template-columns: 1fr 380px;
   gap: 20px;
   height: 100vh;
-  background: #f5f7fb;
+  background: var(--app-bg);
+  color: var(--text);
   direction: rtl;
   padding: 20px;
   box-sizing: border-box;
@@ -600,31 +684,37 @@ onBeforeUnmount(() => {
 
 /* ===== بخش محصولات ===== */
 .products-section {
-  background: white;
+  background: var(--surface);
   border-radius: 20px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--border);
 }
 
 /* ===== بخش فاکتور ===== */
 .invoice-section {
-  background: white;
+  background: var(--surface);
   border-radius: 20px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
   height: 100%;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.03);
+  border: 1px solid var(--border);
 }
+.pos-customer-panel{padding:12px;border-bottom:1px solid var(--border);background:var(--surface-subtle)}
+.pos-customer-panel .customer-search{margin-bottom:8px}
+.pos-field{display:grid;gap:5px;color:var(--muted);font-size:12px;margin-top:8px}
+.pos-field select{width:100%}
+.previous-orders{margin:8px 0 0;color:var(--muted);font-size:12px}
+.previous-order-list{display:flex;gap:6px;overflow:auto;padding-top:8px}
 
 /* ===== هدر محصولات ===== */
 .products-header {
   padding: 20px 24px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-  background: white;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
   flex-shrink: 0;
 }
 
@@ -648,7 +738,7 @@ onBeforeUnmount(() => {
   gap: 8px;
   font-size: 20px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text);
 }
 
 .create-product-btn {
@@ -659,8 +749,8 @@ onBeforeUnmount(() => {
   padding: 9px 13px;
   border: 0;
   border-radius: 10px;
-  background: #8a5e3a;
-  color: #fff;
+  background: var(--primary);
+  color: var(--on-primary);
   font: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -668,21 +758,21 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-.create-product-btn:hover { background: #744b2d; }
+.create-product-btn:hover { background: var(--primary-hover); }
 
 .manage-category-btn {
   padding: 8px 11px;
-  border: 1px solid #cbd5e1;
+  border: 1px solid var(--border-strong);
   border-radius: 10px;
-  background: #fff;
-  color: #475569;
+  background: var(--surface);
+  color: var(--text);
   font: inherit;
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
 }
-.manage-category-btn:hover { border-color: #8a5e3a; color: #8a5e3a; }
+.manage-category-btn:hover { border-color: var(--primary); color: var(--primary); }
 
 .title-icon {
   font-size: 22px;
@@ -694,8 +784,8 @@ onBeforeUnmount(() => {
 
 .title-badge {
   font-size: 12px;
-  color: #64748b;
-  background: #f1f5f9;
+  color: var(--muted);
+  background: var(--surface-subtle);
   padding: 4px 10px;
   border-radius: 20px;
   font-weight: 500;
@@ -712,19 +802,19 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 6px;
   padding: 6px 12px;
-  background: #f8fafc;
+  background: var(--surface-subtle);
   border-radius: 30px;
   font-size: 12px;
-  color: #475569;
+  color: var(--text);
   cursor: pointer;
   transition: all 0.2s;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
 }
 
 .active-category-chip:hover {
-  background: #fee2e2;
-  border-color: #fecaca;
-  color: #b91c1c;
+  background: var(--color-danger-subtle);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
 }
 
 .chip-icon {
@@ -749,10 +839,10 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 10px;
-  color: #64748b;
+  color: var(--muted);
   cursor: pointer;
   transition: all 0.2s;
   font-size: 18px;
@@ -760,21 +850,21 @@ onBeforeUnmount(() => {
 }
 
 .filter-toggle-btn:hover {
-  background: #f8fafc;
-  border-color: #94a3b8;
-  color: #0f172a;
+  background: var(--surface-subtle);
+  border-color: var(--border-strong);
+  color: var(--text);
 }
 
 .filter-toggle-btn.active {
-  background: #f1f5f9;
-  border-color: #a17c5a;
-  color: #a17c5a;
+  background: var(--surface-subtle);
+  border-color: var(--primary);
+  color: var(--primary);
 }
 
 .invoice-badge {
   font-size: 12px;
-  color: #0b6e4f;
-  background: #e3f2ed;
+  color: var(--color-success);
+  background: var(--color-success-subtle);
   padding: 6px 14px;
   border-radius: 30px;
   font-weight: 500;
@@ -789,22 +879,22 @@ onBeforeUnmount(() => {
   position: relative;
   display: flex;
   align-items: center;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
   border-radius: 12px;
   transition: all 0.2s;
 }
 
 .search-container:focus-within {
-  background: white;
-  border-color: #a17c5a;
-  box-shadow: 0 0 0 3px rgba(161, 124, 90, 0.08);
+  background: var(--surface);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--focus);
 }
 
 .search-icon {
   position: absolute;
   right: 14px;
-  color: #94a3b8;
+  color: var(--muted);
   font-size: 16px;
 }
 
@@ -815,7 +905,7 @@ onBeforeUnmount(() => {
   border-radius: 12px;
   font-size: 14px;
   background: transparent;
-  color: #1e293b;
+  color: var(--text);
 }
 
 .search-input:focus {
@@ -827,7 +917,7 @@ onBeforeUnmount(() => {
   left: 12px;
   background: none;
   border: none;
-  color: #94a3b8;
+  color: var(--muted);
   font-size: 14px;
   padding: 4px;
   cursor: pointer;
@@ -838,8 +928,8 @@ onBeforeUnmount(() => {
 }
 
 .search-clear:hover {
-  background: #e2e8f0;
-  color: #475569;
+  background: var(--surface-hover);
+  color: var(--text);
 }
 
 /* ===== پنل فیلتر دسته‌بندی ===== */
@@ -855,10 +945,10 @@ onBeforeUnmount(() => {
   top: 180px;
   right: 20px;
   width: 280px;
-  background: white;
+  background: var(--surface-elevated);
   border-radius: 16px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border);
   z-index: 100;
   padding: 16px;
   animation: slideIn 0.2s ease;
@@ -872,8 +962,8 @@ onBeforeUnmount(() => {
   margin-bottom: 12px;
   padding: 9px 10px;
   border-radius: 8px;
-  background: #fef2f2;
-  color: #b91c1c;
+  background: var(--color-danger-subtle);
+  color: var(--color-danger);
   font-size: 11px;
 }
 
@@ -907,13 +997,13 @@ onBeforeUnmount(() => {
 .filter-header-title {
   font-size: 13px;
   font-weight: 600;
-  color: #0f172a;
+  color: var(--text);
 }
 
 .filter-close-btn {
   background: none;
   border: none;
-  color: #64748b;
+  color: var(--muted);
   font-size: 16px;
   cursor: pointer;
   padding: 4px;
@@ -924,8 +1014,8 @@ onBeforeUnmount(() => {
 }
 
 .filter-close-btn:hover {
-  background: #f1f5f9;
-  color: #0f172a;
+  background: var(--surface-subtle);
+  color: var(--text);
 }
 
 .filter-search {
@@ -938,23 +1028,23 @@ onBeforeUnmount(() => {
   right: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #94a3b8;
+  color: var(--muted);
   font-size: 13px;
 }
 
 .filter-search-input {
   width: 100%;
   padding: 10px 35px 10px 12px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border);
   border-radius: 10px;
   font-size: 12px;
-  background: #f8fafc;
+  background: var(--surface-subtle);
 }
 
 .filter-search-input:focus {
   outline: none;
-  border-color: #a17c5a;
-  background: white;
+  border-color: var(--primary);
+  background: var(--surface);
 }
 
 .filter-list {
@@ -975,12 +1065,12 @@ onBeforeUnmount(() => {
 }
 
 .filter-item:hover {
-  background: #f8fafc;
+  background: var(--surface-hover);
 }
 
 .filter-item.active {
-  background: #f0fdf4;
-  color: #4CAF50;
+  background: var(--color-success-subtle);
+  color: var(--color-success);
 }
 
 .filter-item-icon {
@@ -1001,7 +1091,7 @@ onBeforeUnmount(() => {
 }
 
 .sub-icon {
-  color: #94a3b8;
+  color: var(--muted);
   font-size: 12px;
 }
 
@@ -1011,7 +1101,7 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: 12px;
   padding-top: 12px;
-  border-top: 1px solid #edf2f7;
+  border-top: 1px solid var(--border);
 }
 
 .filter-page-btn {
@@ -1020,18 +1110,18 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: white;
-  border: 1px solid #e2e8f0;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 6px;
-  color: #475569;
+  color: var(--text);
   cursor: pointer;
   font-size: 14px;
 }
 
 .filter-page-btn:hover:not(:disabled) {
-  background: #a17c5a;
-  border-color: #a17c5a;
-  color: white;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
 }
 
 .filter-page-btn:disabled {
@@ -1041,7 +1131,7 @@ onBeforeUnmount(() => {
 
 .filter-page-info {
   font-size: 12px;
-  color: #64748b;
+  color: var(--muted);
 }
 
 /* ===== گرید محصولات ===== */
@@ -1066,7 +1156,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   padding: 40px;
-  background: white;
+  background: var(--surface);
   min-height: 0;
 }
 
@@ -1085,10 +1175,10 @@ onBeforeUnmount(() => {
   width: 38px;
   height: 38px;
   margin: 5px;
-  border: 3px solid #a17c5a;
+  border: 3px solid var(--primary);
   border-radius: 50%;
   animation: spinner-ring 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
-  border-color: #a17c5a transparent transparent transparent;
+  border-color: var(--primary) transparent transparent transparent;
 }
 
 .spinner-ring div:nth-child(1) { animation-delay: -0.45s; }
@@ -1102,7 +1192,7 @@ onBeforeUnmount(() => {
 
 .empty-icon {
   font-size: 48px;
-  color: #cbd5e1;
+  color: var(--muted);
   margin-bottom: 16px;
 }
 
@@ -1110,8 +1200,8 @@ onBeforeUnmount(() => {
 .empty-btn {
   margin-top: 16px;
   padding: 8px 24px;
-  background: #a17c5a;
-  color: white;
+  background: var(--primary);
+  color: var(--on-primary);
   border: none;
   border-radius: 10px;
   font-size: 13px;
@@ -1121,15 +1211,15 @@ onBeforeUnmount(() => {
 
 .retry-btn:hover,
 .empty-btn:hover {
-  background: #8b6b4f;
+  background: var(--primary-hover);
   transform: translateY(-1px);
 }
 
 /* ===== صفحه‌بندی ===== */
 .pagination-wrapper {
   padding: 16px 24px;
-  border-top: 1px solid #edf2f7;
-  background: white;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1148,20 +1238,20 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #e2e8f0;
-  background: white;
+  border: 1px solid var(--border);
+  background: var(--surface);
   border-radius: 10px;
   cursor: pointer;
   font-size: 18px;
-  color: #475569;
+  color: var(--text);
   transition: all 0.2s;
   flex-shrink: 0;
 }
 
 .page-btn:hover:not(:disabled) {
-  background: #a17c5a;
-  border-color: #a17c5a;
-  color: white;
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--on-primary);
 }
 
 .page-btn:disabled {
@@ -1171,27 +1261,27 @@ onBeforeUnmount(() => {
 
 .page-info {
   font-size: 13px;
-  color: #0f172a;
+  color: var(--text);
   font-weight: 500;
 }
 
 .items-count {
   font-size: 12px;
-  color: #64748b;
+  color: var(--muted);
 }
 
 .simple-footer {
   padding: 16px 24px;
-  border-top: 1px solid #edf2f7;
+  border-top: 1px solid var(--border);
   font-size: 12px;
-  color: #64748b;
+  color: var(--muted);
   display: flex;
   gap: 8px;
   flex-shrink: 0;
 }
 
 .footer-category {
-  color: #a17c5a;
+  color: var(--primary);
 }
 
 /* ===== اسکرول بار ===== */
@@ -1202,12 +1292,12 @@ onBeforeUnmount(() => {
 
 .products-grid::-webkit-scrollbar-track,
 .filter-list::-webkit-scrollbar-track {
-  background: #f1f5f9;
+  background: var(--surface-subtle);
 }
 
 .products-grid::-webkit-scrollbar-thumb,
 .filter-list::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--border-strong);
   border-radius: 4px;
 }
 

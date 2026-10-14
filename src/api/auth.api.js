@@ -2,10 +2,10 @@
 import BaseAPI from './BaseAPI'
 
 class AuthAPI extends BaseAPI {
-    // 🔐 Login با رمز عبور
+    // Admin login issues an admin-scoped JWT accepted by protected admin APIs.
     login(data) {
-        // data: { phone_number, password }
-        return this.post('user/login', data)
+        // data: { username, password }
+        return this.post('user/admin/password/login/', data, { skipAuthRefresh: true })
     }
 
     // 📝 Signup
@@ -36,7 +36,7 @@ class AuthAPI extends BaseAPI {
     refreshToken(refresh) {
         return this.post('user/token/refresh', {
             refresh,
-        })
+        }, { skipAuthRefresh: true })
     }
 
     // 👤 گرفتن اطلاعات کاربر

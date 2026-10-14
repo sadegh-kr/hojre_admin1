@@ -532,7 +532,7 @@ defineExpose({ focus, blur, validateNumber })
   font-size: 1rem;
   line-height: 1.5;
   transition: all 0.2s ease;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-family-base);
 }
 
 .input-field:focus {
@@ -559,7 +559,7 @@ defineExpose({ focus, blur, validateNumber })
 .input-field.is-number {
   text-align: left;
   direction: ltr;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-family-base);
 }
 
 [dir="rtl"] .input-field.is-number {

@@ -862,7 +862,7 @@ defineExpose({
 }
 
 .id-value {
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-family-base);
   font-weight: 600;
   color: #212529;
   background: white;

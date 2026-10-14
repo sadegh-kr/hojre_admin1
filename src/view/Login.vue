@@ -1,5 +1,5 @@
 <template>
-  <div class="login-container" :class="{ 'dark-mode': isDarkMode }">
+  <div class="login-container" :class="{ 'dark-mode': isDarkMode }" dir="rtl">
     <!-- دکمه تغییر حالت شب/روز -->
     <!-- <button class="theme-toggle" @click="toggleTheme" :title="isDarkMode ? 'حالت روز' : 'حالت شب'">
       <span class="theme-icon">
@@ -65,7 +65,8 @@
                 id="username"
                 v-model="form.username"
                 type="text"
-                placeholder="admin@cafehojre.ir"
+                placeholder="نام کاربری یا شماره همراه"
+                autocomplete="username"
                 required
                 @focus="highlightInput('username')"
                 @blur="removeHighlight('username')"
@@ -90,6 +91,7 @@
                 v-model="form.password"
                 :type="showPassword ? 'text' : 'password'"
                 placeholder="••••••••"
+                autocomplete="current-password"
                 required
                 @focus="highlightInput('password')"
                 @blur="removeHighlight('password')"
@@ -118,7 +120,7 @@
             <span class="custom-checkbox"></span>
             مرا به خاطر بسپار
           </label>
-          <a href="#" class="forgot-password" @click.prevent="showForgotPassword">
+          <a ref="forgotPasswordTrigger" href="#" class="forgot-password" @click.prevent="showForgotPassword">
             رمز عبور را فراموش کرده‌اید؟
           </a>
         </div>
@@ -129,6 +131,7 @@
             class="submit-btn"
             :class="{ 'loading': isLoading }"
             :disabled="isLoading"
+            :aria-busy="isLoading"
         >
           <span v-if="!isLoading" class="btn-content">
             <span class="btn-icon">
@@ -190,7 +193,7 @@
           </svg>
         </span>
         <span class="error-text">{{ errorMessage }}</span>
-        <button class="close-error" @click="errorMessage = ''">
+        <button type="button" class="close-error" aria-label="بستن پیام خطا" @click="errorMessage = ''">
           <svg viewBox="0 0 24 24">
             <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
           </svg>
@@ -200,10 +203,20 @@
 
     <!-- مودال فراموشی رمز -->
     <div v-if="showForgotModal" class="modal-overlay" @click="closeForgotModal">
-      <div class="forgot-modal" @click.stop>
+      <div
+          ref="forgotModal"
+          class="forgot-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="forgot-password-title"
+          tabindex="-1"
+          @click.stop
+          @keydown.esc="closeForgotModal"
+          @keydown.tab="trapForgotModalFocus"
+      >
         <div class="modal-header">
-          <h3>بازیابی رمز عبور</h3>
-          <button class="close-modal" @click="closeForgotModal">
+          <h3 id="forgot-password-title">بازیابی رمز عبور</h3>
+          <button type="button" class="close-modal" aria-label="بستن" @click="closeForgotModal">
             <svg viewBox="0 0 24 24">
               <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
             </svg>
@@ -213,7 +226,7 @@
           <p>لطفاً ایمیل خود را وارد کنید تا لینک بازیابی رمز عبور برای شما ارسال شود.</p>
           <div class="modal-input">
             <input type="email" placeholder="ایمیل@example.com" v-model="recoveryEmail">
-            <button class="send-recovery" @click="sendRecoveryEmail">ارسال لینک بازیابی</button>
+            <button type="button" class="send-recovery" @click="sendRecoveryEmail">ارسال لینک بازیابی</button>
           </div>
         </div>
       </div>
@@ -223,7 +236,6 @@
 
 <script>
 import { useAuthStore } from '@/store/auth'
-import { useRouter } from 'vue-router'
 import { getApiErrorMessage } from '@/api/error'
 export default {
   name: 'AdminLogin',
@@ -307,7 +319,6 @@ export default {
       }
 
       const authStore = useAuthStore()
-      const router = useRouter()
       this.isLoading = true
       this.errorMessage = ''
 
@@ -321,7 +332,7 @@ export default {
 
         // 🔥 API واقعی
         await authStore.login({
-          phone_number: this.form.username,
+          username: this.form.username.trim(),
           password: this.form.password
         })
         this.$router.push('/dashboard')
@@ -345,13 +356,41 @@ export default {
       )
     },
 
-    showForgotPassword() {
+    async showForgotPassword() {
       this.showForgotModal = true
+      await this.$nextTick()
+      this.$refs.forgotModal?.focus()
     },
 
-    closeForgotModal() {
+    async closeForgotModal() {
       this.showForgotModal = false
       this.recoveryEmail = ''
+      await this.$nextTick()
+      this.$refs.forgotPasswordTrigger?.focus()
+    },
+
+    trapForgotModalFocus(event) {
+      const modal = this.$refs.forgotModal
+      if (!modal) return
+      const focusable = [...modal.querySelectorAll('button:not([disabled]),input:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+      if (!focusable.length) {
+        event.preventDefault()
+        modal.focus()
+        return
+      }
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      const active = document.activeElement
+      if (active === modal || !modal.contains(active)) {
+        event.preventDefault()
+        ;(event.shiftKey ? last : first).focus()
+      } else if (event.shiftKey && active === first) {
+        event.preventDefault()
+        last.focus()
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault()
+        first.focus()
+      }
     },
 
     sendRecoveryEmail() {
@@ -384,7 +423,7 @@ export default {
 
 <style scoped>
 /* متغیرهای رنگ */
-:root {
+.login-container {
   /* حالت روز */
   --primary: #8B4513;
   --primary-light: #A0522D;
@@ -400,8 +439,8 @@ export default {
   --input-bg: #F9F9F9;
   --border: #E0C9A6;
   --shadow: 0 10px 30px rgba(139, 69, 19, 0.1);
-  --error: #F44336;
-  --success: #4CAF50;
+  --error: var(--color-danger);
+  --success: var(--color-success);
   --info: #2196F3;
 }
 
@@ -421,8 +460,8 @@ export default {
   --input-bg: #3E2723;
   --border: #5D4037;
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  --error: #EF5350;
-  --success: #66BB6A;
+  --error: var(--color-danger);
+  --success: var(--color-success);
   --info: #42A5F5;
 }
 
@@ -1249,5 +1288,124 @@ export default {
   .password-toggle {
     left: 10px;
   }
+}
+
+/* Login controls use the same sizing rhythm as the admin control system. */
+.login-card {
+  max-width: 440px;
+  padding: 36px;
+  border-radius: 20px;
+}
+
+.header {
+  margin-bottom: 28px;
+}
+
+.login-form {
+  margin-bottom: 24px;
+}
+
+.input-group {
+  margin-bottom: 20px;
+}
+
+.input-group label {
+  gap: var(--control-gap);
+  margin-bottom: 8px;
+  font-size: var(--control-font-size);
+  font-weight: var(--control-font-weight);
+}
+
+.input-icon svg,
+.btn-icon svg,
+.guest-icon svg {
+  width: var(--icon-size);
+  height: var(--icon-size);
+}
+
+.input-wrapper input,
+.submit-btn,
+.guest-btn,
+.modal-input input,
+.send-recovery {
+  min-height: var(--control-height-lg);
+  font-size: var(--control-font-size);
+}
+
+.input-wrapper input,
+.modal-input input {
+  border-radius: var(--control-radius);
+}
+
+.submit-btn,
+.guest-btn,
+.send-recovery {
+  border-radius: var(--button-radius);
+}
+
+.input-wrapper input {
+  padding: 0 var(--control-padding-x);
+  border-width: 1px;
+}
+
+.input-wrapper input[type='password'],
+.input-wrapper input[id='password'] {
+  padding-left: 48px;
+}
+
+.input-wrapper input:focus {
+  box-shadow: 0 0 0 3px rgba(215, 204, 200, 0.14);
+}
+
+.password-toggle {
+  left: 8px;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  transition: var(--control-transition);
+}
+
+.password-toggle:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.form-options {
+  margin-bottom: 24px;
+}
+
+.submit-btn,
+.guest-btn,
+.send-recovery {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--control-gap);
+  padding: 0 var(--control-padding-x);
+  font-weight: var(--control-font-weight);
+  transition: var(--control-transition);
+}
+
+.submit-btn {
+  margin-bottom: 20px;
+}
+
+.submit-btn:disabled {
+  opacity: .58;
+  box-shadow: none;
+}
+
+.spinner {
+  width: var(--icon-size);
+  height: var(--icon-size);
+  border-width: 2px;
+}
+
+@media (max-width: 480px) {
+  .login-container { padding: 12px; }
+  .login-card { margin: 0; padding: 28px 20px; }
+  .input-wrapper input { padding-top: 0; padding-bottom: 0; }
 }
 </style>

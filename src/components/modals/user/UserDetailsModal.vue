@@ -706,7 +706,7 @@ defineExpose({
   padding: 6px 16px;
   border-radius: 30px;
   font-size: 0.85rem;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-family-base);
 }
 
 .user-contact-info {
@@ -877,7 +877,7 @@ defineExpose({
 }
 
 .phone-number {
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-family-base);
   direction: ltr;
   display: inline-block;
 }
@@ -892,7 +892,7 @@ defineExpose({
 }
 
 .code-text {
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-family-base);
   background: #f1f3f5;
   padding: 4px 8px;
   border-radius: 4px;
@@ -1045,7 +1045,7 @@ defineExpose({
 }
 
 .coord-value {
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-family-base);
   font-size: 0.85rem;
   color: #212529;
   font-weight: 600;

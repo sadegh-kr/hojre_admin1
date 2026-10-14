@@ -25,6 +25,12 @@ const ProductRecipe = () => import("@/view/cost/ProductRecipe.vue");
 const ExpenseCategories = () => import("@/view/cost/ExpenseCategories.vue");
 const ProductionCosts = () => import("@/view/cost/ProductionCosts.vue");
 const CostReports = () => import("@/view/cost/CostReports.vue");
+const LoyaltyOverview = () => import("@/view/loyalty/LoyaltyOverview.vue");
+const LoyaltyMembers = () => import("@/view/loyalty/LoyaltyMembers.vue");
+const LoyaltyCustomerCreate = () => import("@/view/loyalty/LoyaltyCustomerCreate.vue");
+const LoyaltyCustomerDetail = () => import("@/view/loyalty/LoyaltyCustomerDetail.vue");
+const LoyaltySettings = () => import("@/view/loyalty/LoyaltySettings.vue");
+const LoyaltyRewards = () => import("@/view/loyalty/LoyaltyRewards.vue");
 
 const routes = [
     {
@@ -44,7 +50,7 @@ const routes = [
         children: [
             { path: "", component: DashboardPage },
             { path: "restaurant_list", component: ResturantList },
-            { path: "restaurant/order-list/:restaurantId", component: OrderList, props: true, meta: { requiresAdmin: true } },
+            { path: "restaurant/order-list/:restaurantId", component: OrderList, props: true, meta: { requiresAdmin: true, backTo: "/dashboard/restaurant_list", backLabel: "بازگشت به رستوران‌ها" } },
             { path: "user-list", component: UserList, props: true },
             { path: "item-list", component: ItemList, props: true },
             {
@@ -55,7 +61,7 @@ const routes = [
                     { path: "", redirect: "/dashboard/cost-control/overview" },
                     { path: "overview", component: CostOverview },
                     { path: "expenses", component: ExpensivList },
-                    { path: "expense-categories", component: ExpenseCategories },
+                    { path: "expense-categories", component: ExpenseCategories, meta: { backTo: "/dashboard/cost-control/expenses", backLabel: "بازگشت به هزینه‌ها" } },
                     { path: "products", component: CostProducts },
                     { path: "products/:productId/recipe", name: "product-recipe", component: ProductRecipe },
                     { path: "materials", component: CostIngredients },
@@ -72,6 +78,17 @@ const routes = [
             { path: "products/ingredients", redirect: "/dashboard/cost-control/materials" },
             { path: "products/overheads", redirect: "/dashboard/cost-control/overheads" },
             { path: "admin-access", component: AdminAccess, meta: { requiresOwner: true } },
+            { path: "loyalty", component: LoyaltyOverview, meta: { requiresAdmin: true } },
+            { path: "loyalty/customers", component: LoyaltyMembers, meta: { requiresAdmin: true } },
+            { path: "loyalty/customers/new", component: LoyaltyCustomerCreate, meta: { requiresAdmin: true } },
+            { path: "loyalty/customers/:customerId", component: LoyaltyCustomerDetail, meta: { requiresAdmin: true } },
+            { path: "loyalty/points", component: LoyaltyMembers, meta: { requiresAdmin: true } },
+            { path: "loyalty/wallets", component: LoyaltyMembers, meta: { requiresAdmin: true } },
+            { path: "loyalty/tiers", component: LoyaltySettings, meta: { requiresOwner: true } },
+            { path: "loyalty/rewards", component: LoyaltyRewards, meta: { requiresAdmin: true } },
+            { path: "loyalty/reports", component: LoyaltyOverview, meta: { requiresOwner: true } },
+            { path: "loyalty/settings", component: LoyaltySettings, meta: { requiresOwner: true } },
+            { path: "loyalty/phone-order", component: ItemList, meta: { requiresAdmin: true, orderType: 'phone', backTo: "/dashboard/loyalty/customers", backLabel: "بازگشت به اعضا" } },
             { path: "expensiv-list", redirect: "/dashboard/cost-control/expenses" },
 
         ]

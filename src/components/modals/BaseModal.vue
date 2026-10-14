@@ -52,6 +52,7 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue', 'open', 'close'])
 const dialog = ref(null)
+const previouslyFocused = ref(null)
 const titleId = `modal-title-${Math.random().toString(36).slice(2, 9)}`
 const sizeClass = computed(() => `modal-${props.size}`)
 
@@ -64,7 +65,34 @@ function handleOverlayClick() {
   if (props.closeOnOverlayClick) close()
 }
 function handleKeydown(event) {
-  if (event.key === 'Escape' && props.closeOnEsc && props.modelValue) close()
+  if (event.key === 'Escape' && props.closeOnEsc && props.modelValue) {
+    close()
+    return
+  }
+  if (event.key !== 'Tab' || !props.modelValue || !dialog.value) return
+
+  const focusable = [...dialog.value.querySelectorAll(
+    'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'
+  )].filter(element => !element.hidden && element.offsetParent !== null)
+  if (!focusable.length) {
+    event.preventDefault()
+    dialog.value.focus()
+    return
+  }
+
+  const first = focusable[0]
+  const last = focusable[focusable.length - 1]
+  const active = document.activeElement
+  if (active === dialog.value || !dialog.value.contains(active)) {
+    event.preventDefault()
+    ;(event.shiftKey ? last : first).focus()
+  } else if (event.shiftKey && active === first) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && active === last) {
+    event.preventDefault()
+    first.focus()
+  }
 }
 function setBodyLock(locked) {
   if (props.disableBodyScroll) document.body.style.overflow = locked ? 'hidden' : ''
@@ -73,12 +101,16 @@ function setBodyLock(locked) {
 watch(() => props.modelValue, async visible => {
   setBodyLock(visible)
   if (visible) {
+    previouslyFocused.value = document.activeElement
     document.addEventListener('keydown', handleKeydown)
     emit('open')
     await nextTick()
     dialog.value?.focus()
   } else {
     document.removeEventListener('keydown', handleKeydown)
+    await nextTick()
+    previouslyFocused.value?.focus?.()
+    previouslyFocused.value = null
   }
 }, { immediate: true })
 
@@ -92,13 +124,13 @@ defineExpose({ close })
 
 <style scoped>
 .modal-overlay{position:fixed;inset:0;z-index:1200;display:grid;place-items:center;padding:24px;background:rgba(17,24,39,.62);backdrop-filter:blur(3px)}
-.modal-container{width:100%;max-height:calc(100dvh - 48px);display:flex;flex-direction:column;overflow:hidden;outline:0;background:var(--surface,#fff);color:var(--text,#1f2937);border:1px solid var(--border,#e5e7eb);border-radius:16px;box-shadow:0 24px 70px rgba(17,24,39,.28)}
+.modal-container{width:100%;max-height:calc(100dvh - 48px);display:flex;flex-direction:column;overflow:hidden;outline:0;background:var(--surface,#fff);color:var(--text,#1f2937);border:1px solid var(--border,#e5e7eb);border-radius:var(--card-radius,18px);box-shadow:0 24px 70px rgba(17,24,39,.28)}
 .modal-sm{max-width:420px}.modal-md{max-width:600px}.modal-lg{max-width:800px}.modal-xl{max-width:1040px}.modal-full{width:calc(100vw - 48px);height:calc(100dvh - 48px)}
 .modal-header,.modal-footer{display:flex;align-items:center;gap:16px;flex-shrink:0;padding:20px 24px;background:var(--surface,#fff)}
 .modal-header{justify-content:space-between;border-bottom:1px solid var(--border,#e5e7eb)}
 .modal-footer{justify-content:flex-end;border-top:1px solid var(--border,#e5e7eb)}
 .modal-header h2{margin:0;font-size:1.2rem;font-weight:800}
-.modal-close-btn{width:36px;height:36px;display:grid;place-items:center;flex:0 0 auto;padding:0;border:0;border-radius:9px;background:var(--surface-subtle,#f3f4f6);color:var(--muted,#6b7280);font:inherit;font-size:1.4rem;cursor:pointer}
+.modal-close-btn{width:36px;height:36px;display:grid;place-items:center;flex:0 0 auto;padding:0;border:1px solid var(--border,#e5e7eb);border-radius:50%;background:var(--surface-subtle,#f3f4f6);color:var(--muted,#6b7280);font:inherit;font-size:1.4rem;cursor:pointer}
 .modal-close-btn:hover{background:var(--border,#e5e7eb);color:var(--text,#1f2937)}.modal-close-btn:focus-visible{outline:3px solid color-mix(in srgb,var(--primary,#8a5e3a) 25%,transparent)}.modal-close-btn:disabled{opacity:.5;cursor:not-allowed}
 .modal-body{min-height:0;overflow:auto;padding:24px}
 .modal-fade-enter-active,.modal-fade-leave-active{transition:opacity .18s ease}.modal-fade-enter-active .modal-container,.modal-fade-leave-active .modal-container{transition:transform .18s ease}.modal-fade-enter-from,.modal-fade-leave-to{opacity:0}.modal-fade-enter-from .modal-container,.modal-fade-leave-to .modal-container{transform:translateY(12px) scale(.985)}

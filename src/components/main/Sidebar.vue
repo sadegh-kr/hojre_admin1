@@ -1,8 +1,8 @@
 <template>
   <aside class="sidebar" :class="{ collapsed: isCollapsed, open: isMobileOpen }" dir="rtl">
-    <div class="sidebar-brand"><div v-if="!isCollapsed || isMobileOpen"><strong>کافه‌حجره</strong><span>پنل مدیریت</span></div><button class="icon-btn" @click="toggle" :aria-label="isCollapsed ? 'باز کردن سایدبار' : 'بستن سایدبار'">☰</button></div>
+    <div class="sidebar-brand"><div v-if="!isCollapsed || isMobileOpen"><strong>کافه‌حجره</strong><span>پنل مدیریت</span></div><button class="icon-btn admin-icon-button" @click="toggle" :aria-label="isCollapsed ? 'باز کردن سایدبار' : 'بستن سایدبار'">☰</button></div>
     <nav><template v-for="section in visibleSections" :key="section.label"><p v-if="!isCollapsed || isMobileOpen" class="section-title">{{ section.label }}</p><template v-for="item in section.items" :key="item.key || item.to"><div v-if="item.children" class="nav-group" :class="{ active: isCurrent(item) }"><button type="button" class="nav-link nav-parent" :class="{ active: isCurrent(item) }" :aria-expanded="isGroupOpen(item)" @click="toggleGroup(item)"><span class="nav-icon">{{ item.icon }}</span><span v-if="!isCollapsed || isMobileOpen" class="parent-label">{{ item.label }}</span><span v-if="!isCollapsed || isMobileOpen" class="chevron">{{ isGroupOpen(item) ? '⌃' : '⌄' }}</span></button><div v-if="isGroupOpen(item) && (!isCollapsed || isMobileOpen)" class="submenu"><RouterLink v-for="child in item.children" :key="child.to" :to="child.to" class="submenu-link" :class="{ active: isCurrent(child) }" @click="$emit('close-mobile-sidebar')"><span>{{ child.label }}</span></RouterLink></div></div><RouterLink v-else :to="item.to" class="nav-link" :class="{ active: isCurrent(item) }" @click="$emit('close-mobile-sidebar')"><span class="nav-icon">{{ item.icon }}</span><span v-if="!isCollapsed || isMobileOpen">{{ item.label }}</span></RouterLink></template></template></nav>
-    <div class="sidebar-footer"><span v-if="!isCollapsed || isMobileOpen">{{ userName }}</span><button class="logout" @click="logout">خروج</button></div>
+    <div class="sidebar-footer"><span v-if="!isCollapsed || isMobileOpen">{{ userName }}</span><button class="logout admin-button admin-button--ghost admin-button--sm" @click="logout">خروج</button></div>
   </aside>
 </template>
 
@@ -18,6 +18,18 @@ const canAccessFinancials = computed(() => auth.canAccessFinancials)
 const userName = computed(() => auth.user?.fullname || auth.user?.full_name || auth.user?.phone_number || 'مدیر')
 const sections = [
   { label: 'اصلی', items: [{ label: 'داشبورد', to: '/dashboard', icon: '⌂', exact: true }, { label: 'سفارش‌ها', to: '/dashboard/restaurant_list', icon: '☕' }, { label: 'مشتریان', to: '/dashboard/user-list', icon: '♙' }, { label: 'اقلام منو', to: '/dashboard/item-list', icon: '☷' }] },
+  { label: 'باشگاه مشتریان', items: [{ key: 'loyalty-club', label: 'باشگاه مشتریان', icon: '★', children: [
+    { label: 'نمای کلی', to: '/dashboard/loyalty' },
+    { label: 'اعضای باشگاه', to: '/dashboard/loyalty/customers' },
+    { label: 'ثبت مشتری جدید', to: '/dashboard/loyalty/customers/new' },
+    { label: 'ثبت سفارش تلفنی', to: '/dashboard/loyalty/phone-order' },
+    { label: 'امتیازات مشتریان', to: '/dashboard/loyalty/points' },
+    { label: 'کیف پول مشتریان', to: '/dashboard/loyalty/wallets' },
+    { label: 'سطوح عضویت', to: '/dashboard/loyalty/tiers', owner: true },
+    { label: 'جوایز و پاداش‌ها', to: '/dashboard/loyalty/rewards' },
+    { label: 'گزارش باشگاه', to: '/dashboard/loyalty/reports', owner: true },
+    { label: 'تنظیمات باشگاه', to: '/dashboard/loyalty/settings', owner: true },
+  ].filter(item => !item.owner || canAccessFinancials.value) }] },
   { label: 'مالی', owner: true, items: [{ key: 'cost-management', label: 'مدیریت هزینه', icon: '◈', children: [
     { label: 'داشبورد هزینه', to: '/dashboard/cost-control/overview' },
     { label: 'هزینه‌ها', to: '/dashboard/cost-control/expenses' },
@@ -31,12 +43,15 @@ const sections = [
   { label: 'دسترسی‌ها', owner: true, items: [{ label: 'مدیریت مدیران', to: '/dashboard/admin-access', icon: '⚿' }] },
 ]
 const visibleSections = computed(() => sections.filter(section => (!section.admin || isAdmin.value) && (!section.owner || canAccessFinancials.value)))
-const openGroups = ref(new Set(route.path.startsWith('/dashboard/cost-control') ? ['cost-management'] : []))
+const initialGroups = []
+if (route.path.startsWith('/dashboard/cost-control')) initialGroups.push('cost-management')
+if (route.path.startsWith('/dashboard/loyalty')) initialGroups.push('loyalty-club')
+const openGroups = ref(new Set(initialGroups))
 function toggle() { emit('sidebar-collapsed', !props.isCollapsed) }
 function isCurrent(item) { if (item.children) return item.children.some(isCurrent); return item.exact ? route.path === item.to : route.path === item.to || route.path.startsWith(`${item.to}/`) }
 function isGroupOpen(item) { return openGroups.value.has(item.key) }
-function toggleGroup(item) { if (props.isCollapsed && !props.isMobileOpen) emit('sidebar-collapsed', false); const next = new Set(openGroups.value); if (next.has(item.key) && !props.isCollapsed) next.delete(item.key); else next.add(item.key); openGroups.value = next }
-watch(() => route.path, path => { if (path.startsWith('/dashboard/cost-control')) { const next = new Set(openGroups.value); next.add('cost-management'); openGroups.value = next } })
+function toggleGroup(item) { if (props.isCollapsed && !props.isMobileOpen) emit('sidebar-collapsed', false); openGroups.value = openGroups.value.has(item.key) && !props.isCollapsed ? new Set() : new Set([item.key]) }
+watch(() => route.path, path => { if (path.startsWith('/dashboard/cost-control')) openGroups.value = new Set(['cost-management']); else if (path.startsWith('/dashboard/loyalty')) openGroups.value = new Set(['loyalty-club']) })
 function logout() { auth.logout(); emit('close-mobile-sidebar'); router.push('/login') }
 </script>
 

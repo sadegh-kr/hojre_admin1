@@ -2,7 +2,7 @@
   <section class="recipe-page">
     <header class="recipe-heading">
       <div><nav><RouterLink to="/dashboard/cost-control/products">محصولات</RouterLink><span>/</span><strong>دستور تولید</strong></nav><h2>{{product?.name||'دستور تولید محصول'}}</h2><p v-if="product">ترکیب مواد و مقدار مصرف برای تولید یک واحد {{product.name}}</p></div>
-      <RouterLink class="back-button" to="/dashboard/cost-control/products">بازگشت به محصولات</RouterLink>
+      <AppBackButton class="back-button" fallback="/dashboard/cost-control/products" label="بازگشت به محصولات" />
     </header>
 
     <div v-if="loading" class="page-state"><i></i><span>در حال دریافت دستور تولید…</span></div>
@@ -37,6 +37,7 @@
 <script setup>
 import { computed,onMounted,reactive,ref } from 'vue'
 import { useRoute } from 'vue-router'
+import AppBackButton from '@/components/common/AppBackButton.vue'
 import API from '@/api/product-cost.api.js'
 import { costErrorMessage,formatCostNumber as number,formatMoney as money } from '@/utils/costControl'
 

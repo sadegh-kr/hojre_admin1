@@ -2,10 +2,12 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/store/auth.js'
+import { useRestaurantStore } from '@/store/restaurant.js'
 import RestaurantAPI from '@/api/restaurant.api.js'
 
 const router = useRouter()
 const authStore = useAuthStore()
+const restaurantContext = useRestaurantStore()
 const restaurants = ref([])
 const loading = ref(false)
 
@@ -21,8 +23,9 @@ onMounted(async () => {
   }
 })
 
-const goToOrderList = (restaurantId) => {
-  router.push(`/dashboard/restaurant/order-list/${restaurantId}`)
+const goToOrderList = (branch) => {
+  restaurantContext.setActiveRestaurant(branch.restaurant)
+  router.push(`/dashboard/restaurant/order-list/${branch.id}`)
 }
 
 const formatDate = (dateString) => {
@@ -161,7 +164,7 @@ const formatDate = (dateString) => {
             <!-- ستون عملیات -->
             <td>
               <button
-                  @click="goToOrderList(restaurant.id)"
+                  @click="goToOrderList(restaurant)"
                   class="action-btn"
                   :class="{ disabled: !restaurant.is_active }"
               >
@@ -210,9 +213,9 @@ const formatDate = (dateString) => {
 }
 
 body {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--font-family-base);
   direction: rtl;
-  background-color: #f5f5f5;
+  background-color: var(--app-bg);
 }
 
 .container {
@@ -229,13 +232,13 @@ body {
 .header h1 {
   font-size: 24px;
   font-weight: 600;
-  color: #333;
+  color: var(--text);
   margin-bottom: 8px;
 }
 
 .header p {
   font-size: 14px;
-  color: #666;
+  color: var(--muted);
 }
 
 /* Stats grid */
@@ -247,8 +250,8 @@ body {
 }
 
 .stat-card {
-  background: white;
-  border: 1px solid #e0e0e0;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 20px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
@@ -256,32 +259,32 @@ body {
 
 .stat-label {
   font-size: 14px;
-  color: #666;
+  color: var(--muted);
   margin-bottom: 8px;
 }
 
 .stat-value {
   font-size: 28px;
   font-weight: 600;
-  color: #333;
+  color: var(--text);
 }
 
 .stat-value.active {
-  color: #059669;
+  color: var(--color-success);
 }
 
 .stat-value.inactive {
-  color: #6b7280;
+  color: var(--muted);
 }
 
 .stat-value.slug {
-  color: #2563eb;
+  color: var(--primary);
 }
 
 /* Table container */
 .table-container {
-  background: white;
-  border: 1px solid #e0e0e0;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
   margin-bottom: 20px;
@@ -293,19 +296,19 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 20px;
-  border-bottom: 1px solid #e0e0e0;
-  background-color: #f9fafb;
+  border-bottom: 1px solid var(--border);
+  background-color: var(--table-header);
 }
 
 .table-header h2 {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--text);
 }
 
 .table-header-right {
   font-size: 14px;
-  color: #666;
+  color: var(--muted);
 }
 
 /* Loading state */
@@ -317,8 +320,8 @@ body {
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid #e0e0e0;
-  border-top-color: #2563eb;
+  border: 3px solid var(--border);
+  border-top-color: var(--primary);
   border-radius: 50%;
   margin: 0 auto 20px;
   animation: spin 1s linear infinite;
@@ -331,7 +334,7 @@ body {
 }
 
 .loading-state p {
-  color: #666;
+  color: var(--muted);
   font-size: 14px;
 }
 
@@ -349,12 +352,12 @@ body {
 .empty-state h3 {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--text);
   margin-bottom: 8px;
 }
 
 .empty-state p {
-  color: #666;
+  color: var(--muted);
   font-size: 14px;
 }
 
@@ -370,7 +373,7 @@ body {
 }
 
 .restaurant-table thead {
-  background-color: #f9fafb;
+  background-color: var(--table-header);
 }
 
 .restaurant-table th {
@@ -378,19 +381,19 @@ body {
   text-align: right;
   font-size: 12px;
   font-weight: 600;
-  color: #666;
+  color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border);
 }
 
 .restaurant-table td {
   padding: 16px 20px;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border);
 }
 
 .table-row:hover {
-  background-color: #f9f9f9;
+  background-color: var(--table-row-hover);
 }
 
 /* Restaurant info cell */
@@ -415,13 +418,13 @@ body {
 }
 
 .active-logo {
-  border: 2px solid #d1fae5;
-  background-color: #ecfdf5;
+  border: 2px solid var(--color-success);
+  background-color: var(--color-success-subtle);
 }
 
 .inactive-logo {
-  border: 2px solid #e5e7eb;
-  background-color: #f9fafb;
+  border: 2px solid var(--border);
+  background-color: var(--surface-subtle);
 }
 
 .logo-image {
@@ -436,11 +439,11 @@ body {
 }
 
 .active-logo .logo-text {
-  color: #059669;
+  color: var(--color-success);
 }
 
 .inactive-logo .logo-text {
-  color: #6b7280;
+  color: var(--muted);
 }
 
 .restaurant-details {
@@ -450,13 +453,13 @@ body {
 
 .restaurant-name {
   font-weight: 600;
-  color: #333;
+  color: var(--text);
   margin-bottom: 4px;
 }
 
 .restaurant-slogan {
   font-size: 13px;
-  color: #666;
+  color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -474,13 +477,13 @@ body {
 }
 
 .active-status {
-  background-color: #d1fae5;
-  color: #065f46;
+  background-color: var(--color-success-subtle);
+  color: var(--color-success);
 }
 
 .inactive-status {
-  background-color: #f3f4f6;
-  color: #374151;
+  background-color: var(--surface-subtle);
+  color: var(--muted);
 }
 
 .status-dot {
@@ -491,37 +494,37 @@ body {
 }
 
 .active-status .status-dot {
-  background-color: #059669;
+  background-color: var(--color-success);
 }
 
 .inactive-status .status-dot {
-  background-color: #6b7280;
+  background-color: var(--muted);
 }
 
 /* Slug cell */
 .slug-value {
-  color: #2563eb;
+  color: var(--primary);
   font-weight: 500;
   font-size: 14px;
 }
 
 .no-slug {
-  color: #9ca3af;
+  color: var(--muted);
   font-size: 14px;
 }
 
 /* Date cell */
 .date-cell {
-  color: #666;
+  color: var(--muted);
   font-size: 14px;
   white-space: nowrap;
 }
 
 /* Action button */
 .action-btn {
-  background-color: #eff6ff;
-  color: #2563eb;
-  border: 1px solid #bfdbfe;
+  background-color: var(--surface-subtle);
+  color: var(--primary);
+  border: 1px solid var(--border-strong);
   padding: 8px 16px;
   border-radius: 6px;
   font-size: 13px;
@@ -531,8 +534,8 @@ body {
 }
 
 .action-btn:hover:not(.disabled) {
-  background-color: #dbeafe;
-  border-color: #93c5fd;
+  background-color: var(--surface-hover);
+  border-color: var(--primary);
 }
 
 .action-btn.disabled {
@@ -546,28 +549,28 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background-color: #f9fafb;
-  border-top: 1px solid #e0e0e0;
+  background-color: var(--table-header);
+  border-top: 1px solid var(--border);
   font-size: 13px;
-  color: #666;
+  color: var(--muted);
 }
 
 .active-count {
-  color: #059669;
+  color: var(--color-success);
   font-weight: 600;
   margin: 0 4px;
 }
 
 .total-count {
-  color: #333;
+  color: var(--text);
   font-weight: 600;
   margin-right: 4px;
 }
 
 /* Help box */
 .help-box {
-  background-color: #eff6ff;
-  border: 1px solid #bfdbfe;
+  background-color: var(--surface-raised);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   padding: 16px;
   display: flex;
@@ -583,13 +586,13 @@ body {
 .help-content h4 {
   font-size: 14px;
   font-weight: 600;
-  color: #1e40af;
+  color: var(--primary);
   margin-bottom: 4px;
 }
 
 .help-content p {
   font-size: 13px;
-  color: #1e40af;
+  color: var(--text);
   line-height: 1.5;
 }
 
