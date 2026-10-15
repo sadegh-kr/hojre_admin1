@@ -1,5 +1,6 @@
 <template>
   <DatePicker
+    color="var(--primary)"
     :model-value="modelValue"
     :format="modelFormat"
     display-format="jYYYY/jMM/jDD"

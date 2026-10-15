@@ -516,7 +516,7 @@ defineExpose({ focus, blur, validateNumber })
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 600;
-  color: #333;
+  color: var(--text);
   font-size: 14px;
 }
 
@@ -525,10 +525,13 @@ defineExpose({ focus, blur, validateNumber })
 }
 
 .input-field {
+  min-height: var(--control-height);
+  background: var(--input);
+  color: var(--text);
   width: 100%;
   padding: 0.5rem 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--control-radius);
   font-size: 1rem;
   line-height: 1.5;
   transition: all 0.2s ease;
@@ -537,23 +540,23 @@ defineExpose({ focus, blur, validateNumber })
 
 .input-field:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--focus);
 }
 
 .input-field:disabled {
-  background-color: #f3f4f6;
+  background-color: var(--surface-subtle);
   cursor: not-allowed;
   opacity: 0.7;
 }
 
 .input-field.has-error {
-  border-color: #ef4444;
+  border-color: var(--danger);
 }
 
 .input-field.has-error:focus {
-  border-color: #ef4444;
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px var(--color-danger-subtle);
 }
 
 .input-field.is-number {
@@ -569,7 +572,7 @@ defineExpose({ focus, blur, validateNumber })
 .limits-info {
   margin-top: 0.25rem;
   font-size: 0.75rem;
-  color: #6b7280;
+  color: var(--muted);
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
@@ -577,7 +580,7 @@ defineExpose({ focus, blur, validateNumber })
 
 .error-message {
   margin-top: 0.25rem;
-  color: #ef4444;
+  color: var(--danger);
   font-size: 0.875rem;
   display: flex;
   align-items: center;
@@ -599,13 +602,13 @@ defineExpose({ focus, blur, validateNumber })
 .digit-counter span {
   padding: 0.125rem 0.5rem;
   border-radius: 0.25rem;
-  background-color: #f3f4f6;
+  background-color: var(--surface-subtle);
 }
 
 .character-counter .limit-exceeded,
 .digit-counter .limit-exceeded {
-  background-color: #fee2e2;
-  color: #dc2626;
+  background-color: var(--color-danger-subtle);
+  color: var(--danger);
   font-weight: 600;
 }
 

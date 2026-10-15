@@ -49,8 +49,9 @@ const routes = [
         component: MainLayout,
         children: [
             { path: "", component: DashboardPage },
+            { path: "orders", component: OrderList, meta: { requiresAdmin: true } },
             { path: "restaurant_list", component: ResturantList },
-            { path: "restaurant/order-list/:restaurantId", component: OrderList, props: true, meta: { requiresAdmin: true, backTo: "/dashboard/restaurant_list", backLabel: "بازگشت به رستوران‌ها" } },
+            { path: "restaurant/order-list/:restaurantId", redirect: to => ({ path: '/dashboard/orders', query: { branch: to.params.restaurantId } }) },
             { path: "user-list", component: UserList, props: true },
             { path: "item-list", component: ItemList, props: true },
             {

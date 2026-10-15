@@ -796,10 +796,11 @@ watch(currentPage, (newPage) => {
 
 <style scoped>
 .table-container {
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background: var(--surface);
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow);
   overflow: hidden;
+  border: 1px solid var(--border);
   position: relative;
 }
 
@@ -813,20 +814,20 @@ watch(currentPage, (newPage) => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(255, 255, 255, 0.9);
+  background: color-mix(in srgb,var(--surface) 92%,transparent);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   z-index: 10;
-  border-radius: 8px;
+  border-radius: var(--card-radius);
 }
 
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid #f3f3f3;
-  border-top: 3px solid #4dabf7;
+  border: 3px solid var(--border);
+  border-top: 3px solid var(--primary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin-bottom: 12px;
@@ -843,8 +844,8 @@ watch(currentPage, (newPage) => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border);
   flex-wrap: wrap;
   gap: 16px;
 }
@@ -857,14 +858,14 @@ watch(currentPage, (newPage) => {
 
 .table-title {
   margin: 0;
-  font-size: 1.25rem;
-  color: #2c3e50;
-  font-weight: 600;
+  font-size: 1.05rem;
+  color: var(--text);
+  font-weight: 700;
 }
 
 .total-items {
-  background: #e7f5ff;
-  color: #1971c2;
+  background: var(--surface-subtle);
+  color: var(--primary);
   padding: 4px 12px;
   border-radius: 20px;
   font-size: 0.875rem;
@@ -886,20 +887,20 @@ watch(currentPage, (newPage) => {
 .search-input {
   width: 100%;
   padding: 8px 12px 8px 36px;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius);
   font-size: 0.875rem;
   transition: all 0.2s;
 }
 
 .search-input:focus {
   outline: none;
-  border-color: #4dabf7;
-  box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.2);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--focus);
 }
 
 .search-input:disabled {
-  background: #f8f9fa;
+  background: var(--surface-raised);
   cursor: not-allowed;
 }
 
@@ -908,29 +909,29 @@ watch(currentPage, (newPage) => {
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #6c757d;
+  color: var(--muted);
   pointer-events: none;
 }
 
 .refresh-btn {
-  background: white;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius);
   width: 36px;
   height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #6c757d;
+  color: var(--muted);
   font-size: 1rem;
   transition: all 0.2s;
 }
 
 .refresh-btn:hover:not(:disabled) {
-  background: #f8f9fa;
-  border-color: #adb5bd;
-  color: #495057;
+  background: var(--surface-raised);
+  border-color: var(--border-strong);
+  color: var(--text);
 }
 
 .refresh-btn:disabled {
@@ -943,21 +944,21 @@ watch(currentPage, (newPage) => {
   align-items: center;
   gap: 8px;
   font-size: 0.875rem;
-  color: #495057;
+  color: var(--text);
 }
 
 .page-size-select {
   padding: 6px 10px;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
-  background: white;
-  color: #495057;
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius);
+  background: var(--surface);
+  color: var(--text);
   font-size: 0.875rem;
   cursor: pointer;
 }
 
 .page-size-select:disabled {
-  background: #f8f9fa;
+  background: var(--surface-raised);
   cursor: not-allowed;
 }
 
@@ -973,12 +974,13 @@ watch(currentPage, (newPage) => {
 }
 
 .table th {
-  background: #f1f3f5;
-  color: #495057;
+  background: var(--table-header);
+  color: var(--text);
+  font-size: .8rem;
   font-weight: 600;
   text-align: right;
   padding: 12px 16px;
-  border-bottom: 2px solid #dee2e6;
+  border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   z-index: 5;
@@ -989,7 +991,7 @@ watch(currentPage, (newPage) => {
 }
 
 .table th.sortable:hover {
-  background: #e9ecef;
+  background: var(--border);
 }
 
 .th-content {
@@ -1004,17 +1006,17 @@ watch(currentPage, (newPage) => {
   border: none;
   padding: 4px;
   cursor: pointer;
-  color: #adb5bd;
+  color: var(--border-strong);
   font-size: 0.75rem;
   transition: color 0.2s;
 }
 
 .sort-btn:hover:not(.active) {
-  color: #6c757d;
+  color: var(--muted);
 }
 
 .sort-btn.active {
-  color: #4dabf7;
+  color: var(--primary);
 }
 
 .sort-btn.asc {
@@ -1034,9 +1036,10 @@ watch(currentPage, (newPage) => {
 }
 
 .table td {
+  font-size: .85rem;
   padding: 12px 16px;
-  border-bottom: 1px solid #e9ecef;
-  color: #495057;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
   text-align: right;
 }
 
@@ -1044,8 +1047,8 @@ watch(currentPage, (newPage) => {
   transition: background-color 0.2s;
 }
 
-.table tbody tr:hover {
-  background: #f8f9fa;
+.table tbody tr:is(.even,.odd):hover {
+  background: var(--table-row-hover);
 }
 
 .table tbody tr.clickable {
@@ -1053,20 +1056,20 @@ watch(currentPage, (newPage) => {
 }
 
 .table tbody tr.clickable:hover {
-  background: #e7f5ff;
+  background: var(--surface-subtle);
 }
 
 .table tbody tr.even {
-  background: #fcfcfc;
+  background: var(--table-row);
 }
 
 .table tbody tr.odd {
-  background: white;
+  background: var(--surface);
 }
 
 .row-number {
   text-align: center;
-  color: #6c757d;
+  color: var(--muted);
   font-weight: 500;
 }
 
@@ -1084,7 +1087,7 @@ watch(currentPage, (newPage) => {
 .action-btn {
   padding: 6px 12px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--button-radius);
   font-size: 0.8rem;
   cursor: pointer;
   transition: all 0.2s;
@@ -1128,7 +1131,7 @@ watch(currentPage, (newPage) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: #6c757d;
+  color: var(--muted);
 }
 
 .empty-icon {
@@ -1143,18 +1146,18 @@ watch(currentPage, (newPage) => {
 }
 
 .clear-search-btn {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  color: #495057;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  color: var(--text);
   padding: 8px 16px;
-  border-radius: 6px;
+  border-radius: var(--control-radius);
   cursor: pointer;
   font-size: 0.875rem;
   transition: all 0.2s;
 }
 
 .clear-search-btn:hover {
-  background: #e9ecef;
+  background: var(--border);
 }
 
 /* Mobile Cards */
@@ -1163,12 +1166,12 @@ watch(currentPage, (newPage) => {
 }
 
 .mobile-card {
-  background: white;
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
   margin-bottom: 16px;
   overflow: hidden;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: var(--shadow);
   transition: all 0.2s;
 }
 
@@ -1177,8 +1180,8 @@ watch(currentPage, (newPage) => {
 }
 
 .mobile-card.clickable:hover {
-  border-color: #4dabf7;
-  box-shadow: 0 4px 8px rgba(77, 171, 247, 0.15);
+  border-color: var(--primary);
+  box-shadow: 0 4px 8px var(--focus);
 }
 
 .card-header {
@@ -1186,13 +1189,13 @@ watch(currentPage, (newPage) => {
   align-items: center;
   gap: 12px;
   padding: 16px;
-  background: #f8f9fa;
-  border-bottom: 1px solid #e9ecef;
+  background: var(--surface-raised);
+  border-bottom: 1px solid var(--border);
 }
 
 .card-number {
-  background: #4dabf7;
-  color: white;
+  background: var(--primary);
+  color: var(--on-primary);
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -1208,7 +1211,7 @@ watch(currentPage, (newPage) => {
   margin: 0;
   font-size: 1rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--text);
   flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1224,7 +1227,7 @@ watch(currentPage, (newPage) => {
   justify-content: space-between;
   align-items: flex-start;
   padding: 8px 0;
-  border-bottom: 1px solid #f8f9fa;
+  border-bottom: 1px solid var(--surface-raised);
 }
 
 .card-row:last-child {
@@ -1233,14 +1236,14 @@ watch(currentPage, (newPage) => {
 
 .card-label {
   font-weight: 600;
-  color: #495057;
+  color: var(--text);
   font-size: 0.875rem;
   min-width: 100px;
   flex-shrink: 0;
 }
 
 .card-value {
-  color: #6c757d;
+  color: var(--muted);
   font-size: 0.875rem;
   text-align: left;
   flex: 1;
@@ -1251,16 +1254,16 @@ watch(currentPage, (newPage) => {
   display: flex;
   gap: 8px;
   padding: 16px;
-  border-top: 1px solid #e9ecef;
-  background: #f8f9fa;
+  border-top: 1px solid var(--border);
+  background: var(--surface-raised);
   flex-wrap: wrap;
 }
 
 .mobile-action-btn {
   padding: 8px 12px;
-  border: 1px solid #dee2e6;
-  background: white;
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--control-radius);
   font-size: 0.85rem;
   cursor: pointer;
   transition: all 0.2s;
@@ -1273,7 +1276,7 @@ watch(currentPage, (newPage) => {
 }
 
 .mobile-action-btn:hover:not(:disabled) {
-  background: #f8f9fa;
+  background: var(--surface-raised);
   transform: translateY(-1px);
 }
 
@@ -1288,19 +1291,19 @@ watch(currentPage, (newPage) => {
   justify-content: space-between;
   align-items: center;
   padding: 16px 20px;
-  background: #f8f9fa;
-  border-top: 1px solid #e9ecef;
+  background: var(--surface-raised);
+  border-top: 1px solid var(--border);
   flex-wrap: wrap;
   gap: 16px;
 }
 
 .pagination-info {
-  color: #6c757d;
+  color: var(--muted);
   font-size: 0.875rem;
 }
 
 .pagination-info strong {
-  color: #495057;
+  color: var(--text);
   font-weight: 600;
 }
 
@@ -1312,10 +1315,10 @@ watch(currentPage, (newPage) => {
 
 .pagination-btn {
   padding: 8px 16px;
-  border: 1px solid #dee2e6;
-  background: white;
-  color: #495057;
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--control-radius);
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 500;
@@ -1323,8 +1326,8 @@ watch(currentPage, (newPage) => {
 }
 
 .pagination-btn:hover:not(:disabled) {
-  background: #f8f9fa;
-  border-color: #adb5bd;
+  background: var(--surface-raised);
+  border-color: var(--border-strong);
 }
 
 .pagination-btn:disabled {
@@ -1343,10 +1346,10 @@ watch(currentPage, (newPage) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px solid #dee2e6;
-  background: white;
-  color: #495057;
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--control-radius);
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 500;
@@ -1354,13 +1357,13 @@ watch(currentPage, (newPage) => {
 }
 
 .page-btn:hover:not(:disabled) {
-  background: #f8f9fa;
+  background: var(--surface-raised);
 }
 
 .page-btn.active {
-  background: #4dabf7;
-  color: white;
-  border-color: #4dabf7;
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: var(--primary);
 }
 
 .page-btn:disabled {
@@ -1373,25 +1376,25 @@ watch(currentPage, (newPage) => {
   align-items: center;
   gap: 8px;
   font-size: 0.875rem;
-  color: #495057;
+  color: var(--text);
 }
 
 .goto-input {
   width: 60px;
   padding: 6px 10px;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius);
   text-align: center;
   font-size: 0.875rem;
 }
 
 .goto-input:focus {
   outline: none;
-  border-color: #4dabf7;
+  border-color: var(--primary);
 }
 
 .goto-input:disabled {
-  background: #f8f9fa;
+  background: var(--surface-raised);
   cursor: not-allowed;
 }
 
@@ -1484,4 +1487,5 @@ watch(currentPage, (newPage) => {
     order: 2;
   }
 }
+@media(prefers-reduced-motion:reduce){*{transition:none!important}.spinner{animation:none}}
 </style>

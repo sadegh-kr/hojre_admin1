@@ -3,6 +3,7 @@ import RestaurantAPI from '@/api/restaurant.api'
 
 const STORAGE_KEY = 'active_restaurant_id'
 let initializationPromise = null
+let initializationEpoch = 0
 
 export const useRestaurantStore = defineStore('restaurant', {
   state: () => ({
@@ -11,6 +12,7 @@ export const useRestaurantStore = defineStore('restaurant', {
     ready: false,
     loading: false,
     error: '',
+    errorKind: '',
     contextVersion: 0,
   }),
 
@@ -24,12 +26,18 @@ export const useRestaurantStore = defineStore('restaurant', {
       if (this.ready && !force) return
       if (initializationPromise) return initializationPromise
 
+      const epoch = ++initializationEpoch
       if (force) this.ready = false
       this.loading = true
       this.error = ''
+      this.errorKind = ''
       initializationPromise = RestaurantAPI.listRestaurants()
         .then(({ data }) => {
-          this.restaurants = data.results || []
+          if (epoch !== initializationEpoch) return
+          if (!Array.isArray(data?.results)) {
+            throw new Error('پاسخ فهرست رستوران‌ها معتبر نیست. لطفاً دوباره تلاش کنید.')
+          }
+          this.restaurants = data.results
           const storedId = localStorage.getItem(STORAGE_KEY) || ''
           const storedIsAccessible = this.restaurants.some(item => item.id === storedId)
 
@@ -42,11 +50,17 @@ export const useRestaurantStore = defineStore('restaurant', {
           }
         })
         .catch(error => {
+          if (epoch !== initializationEpoch) return
           this.restaurants = []
           this.clearSelection()
-          this.error = error.apiMessage || 'دریافت فهرست رستوران‌های مجاز انجام نشد.'
+          const status = error.response?.status
+          this.errorKind = status === 401 ? 'authentication' : status === 403 ? 'permission' : 'request'
+          this.error = this.errorKind === 'authentication'
+            ? 'نشست مدیریت شما معتبر نیست. لطفاً دوباره وارد شوید.'
+            : error.apiMessage || error.message || 'دریافت فهرست رستوران‌های مجاز انجام نشد.'
         })
         .finally(() => {
+          if (epoch !== initializationEpoch) return
           this.loading = false
           this.ready = true
           initializationPromise = null
@@ -71,12 +85,19 @@ export const useRestaurantStore = defineStore('restaurant', {
       localStorage.removeItem(STORAGE_KEY)
     },
 
-    reset() {
+    cancelInitialization() {
+      initializationEpoch += 1
+      initializationPromise = null
       this.restaurants = []
-      this.clearSelection()
       this.ready = false
       this.loading = false
       this.error = ''
+      this.errorKind = ''
+    },
+
+    reset() {
+      this.cancelInitialization()
+      this.clearSelection()
     },
   },
 })

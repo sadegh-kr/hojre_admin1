@@ -1,8 +1,8 @@
 <template>
   <aside class="sidebar" :class="{ collapsed: isCollapsed, open: isMobileOpen }" dir="rtl">
-    <div class="sidebar-brand"><div v-if="!isCollapsed || isMobileOpen"><strong>کافه‌حجره</strong><span>پنل مدیریت</span></div><button class="icon-btn admin-icon-button" @click="toggle" :aria-label="isCollapsed ? 'باز کردن سایدبار' : 'بستن سایدبار'">☰</button></div>
-    <nav><template v-for="section in visibleSections" :key="section.label"><p v-if="!isCollapsed || isMobileOpen" class="section-title">{{ section.label }}</p><template v-for="item in section.items" :key="item.key || item.to"><div v-if="item.children" class="nav-group" :class="{ active: isCurrent(item) }"><button type="button" class="nav-link nav-parent" :class="{ active: isCurrent(item) }" :aria-expanded="isGroupOpen(item)" @click="toggleGroup(item)"><span class="nav-icon">{{ item.icon }}</span><span v-if="!isCollapsed || isMobileOpen" class="parent-label">{{ item.label }}</span><span v-if="!isCollapsed || isMobileOpen" class="chevron">{{ isGroupOpen(item) ? '⌃' : '⌄' }}</span></button><div v-if="isGroupOpen(item) && (!isCollapsed || isMobileOpen)" class="submenu"><RouterLink v-for="child in item.children" :key="child.to" :to="child.to" class="submenu-link" :class="{ active: isCurrent(child) }" @click="$emit('close-mobile-sidebar')"><span>{{ child.label }}</span></RouterLink></div></div><RouterLink v-else :to="item.to" class="nav-link" :class="{ active: isCurrent(item) }" @click="$emit('close-mobile-sidebar')"><span class="nav-icon">{{ item.icon }}</span><span v-if="!isCollapsed || isMobileOpen">{{ item.label }}</span></RouterLink></template></template></nav>
-    <div class="sidebar-footer"><span v-if="!isCollapsed || isMobileOpen">{{ userName }}</span><button class="logout admin-button admin-button--ghost admin-button--sm" @click="logout">خروج</button></div>
+    <div class="sidebar-brand"><div v-if="!isCollapsed || isMobileOpen"><strong>کافه‌حجره</strong><span>مدیریت رستوران</span></div><button class="icon-btn admin-icon-button" @click="toggle" :aria-label="isCollapsed ? 'باز کردن سایدبار' : 'بستن سایدبار'"><AppIcon name="menu-toggle" /></button></div>
+    <nav aria-label="منوی مدیریت"><template v-for="section in visibleSections" :key="section.label"><p v-if="!isCollapsed || isMobileOpen" class="section-title">{{ section.label }}</p><template v-for="item in section.items" :key="item.key || item.to"><div v-if="item.children" class="nav-group" :class="{ active: isCurrent(item) }"><button type="button" class="nav-link nav-parent" :class="{ active: isCurrent(item) }" :aria-label="item.label" :aria-expanded="isGroupOpen(item)" @click="toggleGroup(item)"><AppIcon :name="item.icon" class="nav-icon" /><span v-if="!isCollapsed || isMobileOpen" class="parent-label">{{ item.label }}</span><AppIcon v-if="!isCollapsed || isMobileOpen" name="chevron" class="chevron" :class="{ expanded: isGroupOpen(item) }" /></button><div v-if="isGroupOpen(item) && (!isCollapsed || isMobileOpen)" class="submenu"><RouterLink v-for="child in item.children" :key="child.to" :to="child.to" class="submenu-link" :class="{ active: isCurrent(child) }" @click="$emit('close-mobile-sidebar')"><span>{{ child.label }}</span></RouterLink></div></div><RouterLink v-else :to="item.to" class="nav-link" :class="{ active: isCurrent(item) }" :aria-label="item.label" @click="$emit('close-mobile-sidebar')"><AppIcon :name="item.icon" class="nav-icon" /><span v-if="!isCollapsed || isMobileOpen">{{ item.label }}</span></RouterLink></template></template></nav>
+    <div class="sidebar-footer"><span v-if="!isCollapsed || isMobileOpen" class="sidebar-user"><AppIcon name="user" />{{ userName }}</span><button class="logout admin-button admin-button--ghost admin-button--sm" @click="logout" aria-label="خروج از حساب"><AppIcon name="logout" /><span v-if="!isCollapsed || isMobileOpen">خروج</span></button></div>
   </aside>
 </template>
 
@@ -10,6 +10,7 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/store/auth'
+import AppIcon from '@/components/common/AppIcon.vue'
 const props = defineProps({ isMobileOpen: Boolean, isCollapsed: Boolean })
 const emit = defineEmits(['sidebar-collapsed', 'close-mobile-sidebar'])
 const router = useRouter(), route = useRoute(), auth = useAuthStore()
@@ -17,8 +18,8 @@ const isAdmin = computed(() => auth.isAdmin)
 const canAccessFinancials = computed(() => auth.canAccessFinancials)
 const userName = computed(() => auth.user?.fullname || auth.user?.full_name || auth.user?.phone_number || 'مدیر')
 const sections = [
-  { label: 'اصلی', items: [{ label: 'داشبورد', to: '/dashboard', icon: '⌂', exact: true }, { label: 'سفارش‌ها', to: '/dashboard/restaurant_list', icon: '☕' }, { label: 'مشتریان', to: '/dashboard/user-list', icon: '♙' }, { label: 'اقلام منو', to: '/dashboard/item-list', icon: '☷' }] },
-  { label: 'باشگاه مشتریان', items: [{ key: 'loyalty-club', label: 'باشگاه مشتریان', icon: '★', children: [
+  { label: 'اصلی', items: [{ label: 'داشبورد', to: '/dashboard', icon: 'home', exact: true }, { label: 'سفارش‌ها', to: '/dashboard/orders', icon: 'orders' }, { label: 'مشتریان', to: '/dashboard/user-list', icon: 'users' }, { label: 'اقلام منو', to: '/dashboard/item-list', icon: 'menu' }] },
+  { label: 'باشگاه مشتریان', items: [{ key: 'loyalty-club', label: 'باشگاه مشتریان', icon: 'star', children: [
     { label: 'نمای کلی', to: '/dashboard/loyalty' },
     { label: 'اعضای باشگاه', to: '/dashboard/loyalty/customers' },
     { label: 'ثبت مشتری جدید', to: '/dashboard/loyalty/customers/new' },
@@ -30,7 +31,7 @@ const sections = [
     { label: 'گزارش باشگاه', to: '/dashboard/loyalty/reports', owner: true },
     { label: 'تنظیمات باشگاه', to: '/dashboard/loyalty/settings', owner: true },
   ].filter(item => !item.owner || canAccessFinancials.value) }] },
-  { label: 'مالی', owner: true, items: [{ key: 'cost-management', label: 'مدیریت هزینه', icon: '◈', children: [
+  { label: 'مالی', owner: true, items: [{ key: 'cost-management', label: 'مدیریت هزینه', icon: 'wallet', children: [
     { label: 'داشبورد هزینه', to: '/dashboard/cost-control/overview' },
     { label: 'هزینه‌ها', to: '/dashboard/cost-control/expenses' },
     { label: 'دسته‌بندی هزینه', to: '/dashboard/cost-control/expense-categories' },
@@ -40,7 +41,7 @@ const sections = [
     { label: 'گزارش هزینه', to: '/dashboard/cost-control/reports' },
     { label: 'هزینه‌های سربار', to: '/dashboard/cost-control/overheads' },
   ] }] },
-  { label: 'دسترسی‌ها', owner: true, items: [{ label: 'مدیریت مدیران', to: '/dashboard/admin-access', icon: '⚿' }] },
+  { label: 'دسترسی‌ها', owner: true, items: [{ label: 'مدیریت مدیران', to: '/dashboard/admin-access', icon: 'admin' }] },
 ]
 const visibleSections = computed(() => sections.filter(section => (!section.admin || isAdmin.value) && (!section.owner || canAccessFinancials.value)))
 const initialGroups = []
@@ -55,4 +56,38 @@ watch(() => route.path, path => { if (path.startsWith('/dashboard/cost-control')
 function logout() { auth.logout(); emit('close-mobile-sidebar'); router.push('/login') }
 </script>
 
-<style scoped>.sidebar{grid-area:sidebar;position:sticky;top:0;z-index:30;height:100vh;width:var(--sidebar-width);display:flex;flex-direction:column;background:var(--surface);border-left:1px solid var(--border);transition:width .2s ease;overflow:hidden}.sidebar.collapsed{width:var(--sidebar-collapsed-width)}.sidebar-brand{height:72px;display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:0 1rem;border-bottom:1px solid var(--border);white-space:nowrap}.sidebar-brand strong{display:block;color:var(--primary)}.sidebar-brand span,.section-title{font-size:.75rem;color:var(--muted)}.icon-btn,.logout{border:0;background:var(--surface-subtle);color:var(--text);border-radius:8px;cursor:pointer;padding:.5rem}.sidebar nav{flex:1;overflow-y:auto;padding:.8rem .55rem}.section-title{margin:1rem .55rem .45rem;font-size:.72rem;font-weight:bold}.nav-link{width:100%;display:flex;align-items:center;gap:.75rem;min-height:44px;padding:.65rem .75rem;margin:.2rem 0;border:0;border-radius:9px;background:transparent;color:var(--text);text-decoration:none;white-space:nowrap;font:inherit;text-align:right;cursor:pointer}.nav-link:hover{background:var(--surface-subtle)}.nav-link.active{background:var(--focus);color:var(--primary);font-weight:700}.nav-icon{width:22px;text-align:center;font-size:1.1rem}.parent-label{flex:1}.chevron{color:var(--muted);font-size:.75rem}.nav-group.active>.nav-parent{color:var(--primary)}.submenu{display:grid;gap:2px;margin:.15rem 2.15rem .45rem .2rem;padding-right:.65rem;border-right:1px solid var(--border)}.submenu-link{display:flex;align-items:center;min-height:34px;padding:.4rem .65rem;border-radius:7px;color:var(--muted);text-decoration:none;font-size:.76rem}.submenu-link:hover{background:var(--surface-subtle);color:var(--text)}.submenu-link.active{background:var(--focus);color:var(--primary);font-weight:700}.sidebar-footer{padding:1rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem;border-top:1px solid var(--border);white-space:nowrap;font-size:.8rem}.logout{color:var(--danger)}@media(max-width:900px){.sidebar{position:fixed;right:0;transform:translateX(100%);width:min(300px,84vw);box-shadow:var(--shadow)}.sidebar.open{transform:translateX(0)}.sidebar.collapsed{width:min(300px,84vw)}.sidebar.collapsed .sidebar-brand>div,.sidebar.collapsed .nav-link span:not(.nav-icon),.sidebar.collapsed .section-title,.sidebar.collapsed .sidebar-footer span{display:block}}</style>
+<style scoped>
+.sidebar{grid-area:sidebar;position:sticky;top:0;z-index:30;height:100vh;height:100dvh;width:var(--sidebar-width);display:flex;flex-direction:column;background:var(--surface-raised);border-left:1px solid var(--border);transition:width .18s ease;overflow:hidden}
+.sidebar.collapsed{width:var(--sidebar-collapsed-width)}
+.sidebar-brand{min-height:94px;display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:16px 20px;background:var(--brand-panel);color:var(--on-brand);border-radius:0 0 0 28px;white-space:nowrap}
+.sidebar-brand strong{display:block;font-size:1.35rem;line-height:1.6;color:var(--on-brand)}
+.sidebar-brand span{display:block;font-size:.75rem;color:var(--on-brand);opacity:.78}
+.sidebar-brand .icon-btn.admin-icon-button{width:32px!important;height:32px!important;border-color:#ffffff26!important;background:#ffffff0c;color:var(--on-brand)}
+.sidebar nav{flex:1;min-height:0;overflow-y:auto;padding:10px 14px 24px;scrollbar-width:thin}
+.section-title{display:flex;align-items:center;gap:.6rem;margin:22px 8px 10px;font-size:.7rem;color:var(--muted);font-weight:400}
+.section-title::after{content:'';height:1px;background:var(--border);flex:1}
+.section-title:first-child{margin-top:8px}
+.nav-link{width:100%;display:flex;align-items:center;gap:13px;min-height:48px;padding:12px 14px;margin:5px 0;border:1px solid transparent;border-radius:14px;background:transparent;color:var(--text);text-decoration:none;white-space:nowrap;font:600 .9rem/1.5 var(--font-family-primary);text-align:right;cursor:pointer;transition:var(--control-transition)}
+.nav-link:hover{background:var(--surface-hover)}
+.nav-link.active{background:var(--primary);color:var(--on-primary);border-color:var(--primary);box-shadow:0 3px 8px #47301d0a}
+.nav-icon{width:21px;height:21px;color:var(--primary)}
+.nav-link.active .nav-icon,.nav-link.active .chevron{color:inherit}
+.parent-label{flex:1}
+.chevron{width:14px;height:14px;color:var(--muted);transform:rotate(-90deg);transition:transform .16s ease}
+.chevron.expanded{transform:rotate(90deg)}
+.submenu{display:grid;gap:3px;margin:6px 24px 10px 0;padding-right:15px;border-right:1px solid var(--border-strong)}
+.submenu-link{display:flex;align-items:center;min-height:36px;padding:7px 10px;border-radius:10px;color:var(--muted);text-decoration:none;font-size:.8rem}
+.submenu-link:hover{background:var(--surface-hover);color:var(--text)}
+.submenu-link.active{background:var(--surface-hover);color:var(--primary);font-weight:700}
+.sidebar-footer{padding:14px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--border);font-size:.8rem;background:var(--surface-raised)}
+.sidebar-user{display:flex;align-items:center;gap:.5rem;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted);padding-inline:8px}
+.sidebar-footer .logout{width:100%;justify-content:flex-start;gap:12px;background:var(--surface);border:1px solid var(--border);color:var(--primary);border-radius:14px!important;min-height:44px!important}
+.sidebar-footer .logout:hover{background:var(--surface-hover)}
+.sidebar.collapsed .sidebar-brand{padding:20px;justify-content:center}
+.sidebar.collapsed nav{padding-inline:10px}
+.sidebar.collapsed .nav-link{justify-content:center;padding:12px}
+.sidebar.collapsed .sidebar-footer{padding:10px}
+.sidebar.collapsed .logout{justify-content:center}
+@media(max-width:900px){.sidebar{position:fixed;right:0;z-index:60;transform:translateX(100%);width:min(300px,84vw);box-shadow:var(--shadow);transition:transform .18s ease}.sidebar.open{transform:translateX(0)}.sidebar.collapsed{width:min(300px,84vw)}.sidebar.collapsed .sidebar-brand{justify-content:space-between}.sidebar.collapsed .nav-link,.sidebar.collapsed .logout{justify-content:flex-start}}
+@media(prefers-reduced-motion:reduce){.sidebar,.chevron{transition:none}}
+</style>

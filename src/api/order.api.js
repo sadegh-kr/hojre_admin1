@@ -14,6 +14,12 @@ class OrderAPI extends BaseAPI {
         return this.get(`${this.basePath}list/${restaurantId}`, { params })
     }
 
+    getAdminOrders(restaurantId, params = {}) {
+        return this.get(`${this.basePath}admin/orders/`, {
+            params: { ...params, restaurant_id: restaurantId },
+        })
+    }
+
     async request(promise, notify = false) {
         try {
             const { data } = await promise
