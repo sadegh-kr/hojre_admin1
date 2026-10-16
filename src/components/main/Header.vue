@@ -50,12 +50,12 @@ function logout(){restaurantContext.reset();auth.logout();router.push('/login')}
 </script>
 
 <style scoped>
-.header{grid-area:header;position:sticky;top:0;z-index:50;min-height:76px;display:flex;align-items:center;gap:1rem;padding:12px var(--page-padding);background:var(--surface);border-bottom:1px solid var(--border)}
+.header{grid-area:header;position:sticky;top:0;z-index:50;min-height:76px;display:flex;align-items:center;gap:1rem;padding:12px var(--page-padding);background:color-mix(in srgb,var(--surface) 94%,transparent);border-bottom:1px solid var(--border);box-shadow:0 4px 18px #4d2e1908;backdrop-filter:blur(14px)}
 .header-title{display:grid;gap:2px;min-width:0}
-.header-title strong{color:var(--text);font:700 .9rem/1.5 var(--font-family-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.header-title strong{color:var(--text);font:800 .92rem/1.5 var(--font-family-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .header-title span,.restaurant-context>span{font-size:.75rem;color:var(--muted)}
 .restaurant-context{display:flex;align-items:center;gap:.55rem;margin-inline-start:auto;color:var(--primary);min-width:0}
-.restaurant-context select,.restaurant-context strong{min-height:40px;max-width:220px;border:1px solid var(--border);border-radius:var(--button-radius);background:var(--surface-raised);color:var(--text);padding:8px 14px;font-size:.85rem;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.restaurant-context select,.restaurant-context strong{min-height:42px;max-width:220px;border:1px solid var(--border);border-radius:var(--button-radius);background:var(--surface-raised);color:var(--text);padding:8px 16px;font-size:.83rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .restaurant-context select{cursor:pointer}
 .header-actions{position:relative;display:flex;gap:.6rem;margin-inline-start:auto;flex:none}
 .restaurant-context+.header-actions{margin-inline-start:0}

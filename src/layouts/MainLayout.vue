@@ -77,9 +77,9 @@ watch(collapsed, value => localStorage.setItem('cafeHojre-sidebar', value ? 'col
 </script>
 
 <style>
-.admin-shell{--sidebar-width:240px;--sidebar-collapsed-width:76px;min-height:100vh;display:grid;grid-template-columns:var(--sidebar-width) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"sidebar header" "sidebar main";align-items:start;background:var(--app-bg);color:var(--text)}
+.admin-shell{--sidebar-width:245px;--sidebar-collapsed-width:76px;min-height:100vh;display:grid;grid-template-columns:var(--sidebar-width) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);grid-template-areas:"sidebar header" "sidebar main";align-items:start;background:var(--app-bg);color:var(--text)}
 .admin-shell.collapsed{grid-template-columns:var(--sidebar-collapsed-width) minmax(0,1fr)}
-.admin-main{grid-area:main;min-width:0;padding:22px var(--page-padding) 32px}
+.admin-main{grid-area:main;min-width:0;padding:22px var(--page-padding) 36px}
 .admin-content{max-width:1600px;margin:auto;min-width:0}
 .page-back-navigation{display:flex;align-items:center;margin-bottom:1rem}
 .context-state{padding:clamp(24px,5vw,60px);text-align:center;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:var(--card-radius);box-shadow:var(--shadow)}

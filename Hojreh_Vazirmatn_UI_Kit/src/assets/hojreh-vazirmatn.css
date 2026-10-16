@@ -1,0 +1,19 @@
+/* Cafe Hojreh - licensed user-supplied Vazirmatn files. No font binaries included. */
+/* Import this stylesheet ONCE from the existing Vue app entry/global stylesheet. */
+@font-face { font-family: "Vazirmatn Hojreh"; src: url("./fonts/Vazirmatn-Regular.woff2") format("woff2"); font-style: normal; font-weight: 400; font-display: swap; }
+@font-face { font-family: "Vazirmatn Hojreh"; src: url("./fonts/Vazirmatn-Medium.woff2") format("woff2"); font-style: normal; font-weight: 500; font-display: swap; }
+@font-face { font-family: "Vazirmatn Hojreh"; src: url("./fonts/Vazirmatn-SemiBold.woff2") format("woff2"); font-style: normal; font-weight: 600; font-display: swap; }
+@font-face { font-family: "Vazirmatn Hojreh"; src: url("./fonts/Vazirmatn-Bold.woff2") format("woff2"); font-style: normal; font-weight: 700; font-display: swap; }
+@font-face { font-family: "Vazirmatn Hojreh"; src: url("./fonts/Vazirmatn-ExtraBold.woff2") format("woff2"); font-style: normal; font-weight: 800; font-display: swap; }
+@font-face { font-family: "Vazirmatn Hojreh"; src: url("./fonts/Vazirmatn-Black.woff2") format("woff2"); font-style: normal; font-weight: 900; font-display: swap; }
+
+:root {
+  --font-family-primary: "Vazirmatn Hojreh", Tahoma, Arial, sans-serif;
+  --hj-typography-body: 500;
+  --hj-typography-label: 600;
+  --hj-typography-heading: 800;
+}
+html, body, #app { font-family: var(--font-family-primary); }
+body { font-weight: var(--hj-typography-body); }
+button, input, select, textarea, table { font-family: inherit; }
+/* For calendar overlays teleported under body: extend the app's existing targeted selectors as needed. */

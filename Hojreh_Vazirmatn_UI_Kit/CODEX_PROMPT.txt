@@ -1,0 +1,72 @@
+CODEX TASK — VISUAL-ONLY REFINEMENT: VAZIRMATN + REFERENCE DASHBOARD + SIDEBAR ART
+
+You are working inside the EXISTING Cafe Hojreh Vue 3/Vite admin application at:
+E:\ZeroTeam\Cafee_Hojre\hojre_admin
+
+The user provided an updated visual-only UI reference kit. Read README-FA.md first, and inspect the current working tree, Dashboard.vue, MainLayout.vue, Header.vue, Sidebar.vue, global admin.css, dashboard.css, theme tokens, current routes, and available local font files. The app already has critical, functional restaurant-specific dashboard APIs, admin auth, orders, customer loyalty, branch management, wallet rules, and Jalali filters. This is a UI SKINNING TASK ONLY.
+
+ABSOLUTE SCOPE LOCK:
+- NEVER edit website-backend, Django settings, models, serializers, URLs, migrations, authentication, permissions, orders, wallet/loyalty services, database files, .env, or customer-site frontend.
+- NEVER add/rename/remove API calls, change request headers or payloads, alter tenant/restaurant selection, order filters, payment state, branch rules, route definitions, JWT handling, or business calculations.
+- Keep existing Vue logic, loading/error/empty states, Jalali-Gregorian conversions, permissions, action handlers, and real API bindings intact. Do not replace working Dashboard.vue script logic with fake/demo objects.
+- Allowed scope: shared typographic CSS, existing dashboard template/presentational child components, theme CSS tokens, existing Sidebar.vue presentational layout, and inclusion of the supplied image asset. Import the provided Vue components ONLY if they can be wired to the existing data/actions without modifying business behavior.
+- Do not use git reset/clean/checkout to overwrite uncommitted work. Inspect git diff before and after. If a required change exceeds visual scope, STOP and report it; do not silently change functionality.
+
+FONT REQUIREMENT (critical; existing text is too thin):
+The user ALREADY placed real WOFF2 font files under:
+E:\ZeroTeam\Cafee_Hojre\hojre_admin\src\assets\fonts\
+
+Verify exact filenames before editing:
+- Vazirmatn-Regular.woff2 => 400
+- Vazirmatn-Medium.woff2 => 500
+- Vazirmatn-SemiBold.woff2 => 600
+- Vazirmatn-Bold.woff2 => 700
+- Vazirmatn-ExtraBold.woff2 => 800
+- Vazirmatn-Black.woff2 => 900
+Optional additional Light/Thin/Variable files exist; DO NOT make lightweight variants the UI default and do not load variable AND static weights redundantly.
+
+The kit includes src/assets/hojreh-vazirmatn.css with verified path conventions; import ONCE from the existing app global entry or merge its @font-face declarations into the existing global font stylesheet. Do not import the old Yekan font CSS afterwards if it overrides the new family. Preserve user-owned font files; do not download, rename, delete, or copy new font binaries.
+
+Typography goals:
+- Entire panel uses Vazirmatn (not just dashboard), including form controls, sidebar, tables, date pickers, teleported modals, and buttons. Fix only conflicting font declarations.
+- Body: 500 (Medium) with readable 1.6–1.8 line-height; table body: 500; labels and action buttons: 600–700; nav labels: 700; cards/section headings: 700–800; page headings & key figures: 800–900.
+- Do not set Black/900 globally or font-weight: bold indiscriminately; hierarchy and readability matter.
+- Use real @font-face weights and font-display:swap; no fabricated font files or synthetic weights.
+- Keep Persian digits and RTL. Keep email, phone and URLs correctly LTR. Check text baseline/line-height after font change.
+
+VISUAL REFERENCE:
+Use reference-dashboard.png and the kit Vue/CSS as a VISUAL TEMPLATE ONLY. Target:
+- Premium cream/white surfaces with warm brown brand accents.
+- Right RTL navigation matching existing route structure, four well-spaced KPI cards, compact date-filter bar, meaningful line graph, attention items, quick-action tiles, order status, authorized financial summary, recent customers where supported.
+- Rounded cards (about 16–20px), pill buttons, fine borders/shadows; balanced spacing and clear visual hierarchy.
+- Maintain user-approved success #1ebd09 and danger #c20000 semantics, with accessible foreground contrast; neutral Cancel/Back remain neutral.
+- Keep fully functional responsive layout and BOTH light/dark modes. Do not copy the sample hardcoded numbers into actual panels.
+- Keep the single Cafe Hojreh behavior, current restaurant context, and existing branch-specific controls. Do not recreate any multiple-restaurant chooser.
+
+SIDEBAR ILLUSTRATION (must match uploaded image):
+The kit includes src/assets/hojreh-sidebar-art.png, cropped directly from the user's supplied screenshot (the illustrated arch, plants, and cafe table/chairs; no logout button).
+- Integrate it ONCE in the EXISTING Sidebar.vue, preferably using provided src/components/main/HojrehSidebarArt.vue, immediately ABOVE the already-functional Logout button inside the sidebar footer.
+- Position art at the bottom of the right sidebar, fit/contain at natural aspect ratio, max-width around 187px; do not stretch, distort, or repeat.
+- Ensure nav remains independently scrollable on short screens, and the illustration never covers or blocks navigation or Logout.
+- Keep the existing Logout button and its existing click handler as-is (no duplicate, fake or disabled logout).
+- On collapsed/mobile sidebar hide or gracefully scale the artwork. For dark mode, place the cream illustration on a subtle intentional panel or provide appropriate treatment; no bright mismatched rectangle against dark theme.
+- The crop's resolution is limited to the user's provided screenshot. Do not promise a vector/exact original source asset. Use the exact supplied crop instead of inventing a new drawing.
+
+INTEGRATION DETAILS:
+- src/view/HojrehDashboardPro.vue is PRESENTATION ONLY and has optional showShell. When using within existing MainLayout, showShell MUST remain false, to avoid duplicate header/sidebar/logout. Prefer adapting the existing Dashboard.vue template and CSS rather than replacing its reactive logic.
+- Its `demoMode` is only for a stand-alone demonstration and MUST be false/absent in the live admin.
+- Adapt props and emits to existing API-backed computed state and real existing route handlers. NO fake data, invented customer list, or unsupported trends. Show proper empty states for missing data and preserve permission restrictions.
+- The old kit's sample figures and labels are demonstration values ONLY. Existing backend may not yet have restaurant-scoped expenses/net figures; never fabricate them or infer them from global totals.
+- Preserve current functional calendar selection, page loading, retry, error, actions and order status logic. Do not create decorative controls that appear clickable but do nothing.
+
+TESTING & DELIVERABLE:
+1. Record existing git status/diff without reverting anything.
+2. Verify font files exist and CSS font weight mappings and resource paths are correct.
+3. Implement purely visual changes and sidebar decorative image insertion.
+4. Run npm run build and available lint/tests; inspect browser at 1440px, 1024px, mobile if possible.
+5. Test dashboard loading with real restaurant-scoped API, empty states, chart tabs, date filters, existing quick-action routes, sidebar/logout, light/dark theme, browser reload.
+6. Verify using browser Network that font files return 200 (not 404), and computed style resolves Vazirmatn for body/buttons/headings.
+7. Compare screenshot to reference design, especially typography thickness, spacing, and sidebar artwork position.
+8. Review git diff: NO backend changes, no API/route/store/business-logic changes, no accidental deletion of current functionality.
+
+FINAL REPORT MUST BE ENTIRELY IN PERSIAN. Include exact modified frontend files, font weights installed and used, illustration positioning, visual differences from screenshot, build/test/browser results, confirmation that backend/API/business logic was untouched, and any incomplete items. Do not claim tests you did not run.

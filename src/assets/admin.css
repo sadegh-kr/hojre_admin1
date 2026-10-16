@@ -1,53 +1,13 @@
 @import './base.css';
-
-@font-face {
-  font-family: "Yekan Bakh";
-  src: url("./fonts/YekanBakh-Regular.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Yekan Bakh";
-  src: url("./fonts/YekanBakh-SemiBold.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 600;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Yekan Bakh";
-  src: url("./fonts/YekanBakh-Bold.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Yekan Bakh";
-  src: url("./fonts/YekanBakh-ExtraBold.woff2") format("woff2");
-  font-style: normal;
-  font-weight: 800;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Yekan Bakh FaNum Fat";
-  src: url("./fonts/3470572.ttf") format("truetype");
-  font-style: normal;
-  font-weight: 1000;
-  font-display: swap;
-}
+@import './hojreh-vazirmatn.css';
 
 :root{
-  --font-family-primary:"Yekan Bakh",Tahoma,Arial,sans-serif;
-  --font-family-display:"Yekan Bakh FaNum Fat",var(--font-family-primary);
-  --font-family-base:var(--font-family-primary);
   --font-weight-regular:400;
+  --font-weight-medium:500;
   --font-weight-semibold:600;
   --font-weight-bold:700;
   --font-weight-extrabold:800;
+  --font-weight-black:900;
   --font-size-xs:.75rem;
   --font-size-sm:.8125rem;
   --font-size-md:.9rem;
@@ -60,24 +20,24 @@
 :root {
   font-synthesis:none;
   color-scheme:light;
-  --app-bg:#f8f6f3;
+  --app-bg:#f8f5f0;
   --surface:#ffffff;
-  --surface-raised:#fbf8f4;
-  --surface-subtle:#f6f1eb;
-  --surface-hover:#f2eae1;
+  --surface-raised:#fdfbf8;
+  --surface-subtle:#f8f3ee;
+  --surface-hover:#f2e9e0;
   --surface-elevated:#ffffff;
   --table-header:#fbf8f4;
   --table-row:var(--surface);
   --table-row-hover:var(--surface-subtle);
   --input:#fffdfa;
-  --text:#27211d;
-  --muted:#79716b;
-  --border:#ebe5de;
-  --border-strong:#d7c9bb;
-  --primary:#68452f;
-  --primary-hover:#553823;
+  --text:#231b17;
+  --muted:#81766e;
+  --border:#ebe2d9;
+  --border-strong:#d8c7b8;
+  --primary:#68432d;
+  --primary-hover:#4e2f1e;
   --on-primary:#ffffff;
-  --brand-panel:#4c3323;
+  --brand-panel:#4a2d1d;
   --on-brand:#fff7ee;
   --brand-icon:#f7ebdc;
   --focus:#68452f40;
@@ -97,7 +57,7 @@
   --on-danger:#ffffff;
   --success:var(--color-success);
   --danger:var(--danger-text);
-  --shadow:0 5px 22px #47301d08;
+  --shadow:0 7px 24px #55351f0b;
   --button-radius:9999px;
   --control-radius:14px;
   --card-radius:20px;
@@ -147,14 +107,14 @@
 *{box-sizing:border-box}
 html,body,#app{min-width:0;min-height:100%;margin:0}
 html{background:var(--app-bg)}
-body{overflow-x:hidden;background:var(--app-bg);color:var(--text);font-size:var(--font-size-md);font-weight:var(--font-weight-regular);line-height:var(--line-height-body)}
+body{overflow-x:hidden;background:var(--app-bg);color:var(--text);font-size:var(--font-size-md);font-weight:var(--font-weight-medium);line-height:var(--line-height-body)}
 button,input,select,textarea{font:inherit}
 button{cursor:pointer}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
 [data-theme='dark'] body,[data-theme='dark'] .admin-shell,[data-theme='dark'] .admin-main{background:var(--app-bg);color:var(--text)}
 
 /* Global typography: all application surfaces inherit one font token. */
-html:root,body,#app{font-family:var(--font-family-primary)}button,input,select,textarea,optgroup,option,table{font-family:inherit;line-height:var(--line-height-ui)}h1{font-size:var(--font-size-xl);font-weight:var(--font-weight-bold);line-height:1.45}h2{font-size:var(--font-size-lg);font-weight:var(--font-weight-bold);line-height:1.5}p{line-height:var(--line-height-body)}small,.helper-text{font-size:var(--font-size-xs)}.header-title strong,.sidebar-brand strong{font-family:var(--font-family-display);font-weight:1000}.vpd-main,.vpd-wrapper,.vpd-container,.vpd-content,.vpd-actions,.vpd-addon-list-content,.vpd-input-group input{font-family:var(--font-family-primary)!important}
+html:root,body,#app{font-family:var(--font-family-primary)}button,input,select,textarea,optgroup,option,table{font-family:inherit;line-height:var(--line-height-ui)}h1{font-size:var(--font-size-xl);font-weight:var(--font-weight-extrabold);line-height:1.45}h2{font-size:var(--font-size-lg);font-weight:var(--font-weight-bold);line-height:1.5}p{line-height:var(--line-height-body)}small,.helper-text{font-size:var(--font-size-xs)}button,.admin-button{font-weight:var(--font-weight-semibold)}.header-title strong{font-weight:var(--font-weight-extrabold)}.sidebar-brand strong{font-family:var(--font-family-display);font-weight:var(--font-weight-black)}.vpd-main,.vpd-wrapper,.vpd-container,.vpd-content,.vpd-actions,.vpd-addon-list-content,.vpd-input-group input{font-family:var(--font-family-primary)!important}
 
 /* Reusable control system for admin pages. */
 .admin-button{min-height:var(--control-height);display:inline-flex;align-items:center;justify-content:center;gap:var(--control-gap);padding:0 var(--control-padding-x);border:1px solid transparent;border-radius:var(--button-radius);font-size:var(--control-font-size);font-weight:var(--control-font-weight);line-height:1.2;white-space:nowrap;transition:var(--control-transition)}.admin-button:hover:not(:disabled){transform:translateY(-1px)}.admin-button:active:not(:disabled){transform:translateY(0)}.admin-button:disabled{opacity:.55;cursor:not-allowed;transform:none}.admin-button--primary{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}.admin-button--primary:hover:not(:disabled){background:var(--primary-hover);border-color:var(--primary-hover)}.admin-button--secondary,.admin-button--outline{background:var(--surface);border-color:var(--border-strong);color:var(--text)}.admin-button--secondary:hover:not(:disabled),.admin-button--outline:hover:not(:disabled),.admin-button--ghost:hover:not(:disabled){background:var(--surface-hover);border-color:var(--primary);color:var(--primary)}.admin-button--ghost{background:transparent;border-color:transparent;color:var(--primary)}.admin-button--success{background:var(--color-success);border-color:var(--color-success);color:var(--on-success)}.admin-button--success:hover:not(:disabled){background:var(--color-success-hover);border-color:var(--color-success-hover)}.admin-button--danger{background:var(--color-danger);border-color:var(--color-danger);color:var(--on-danger)}.admin-button--danger:hover:not(:disabled){background:var(--color-danger-hover);border-color:var(--color-danger-hover)}.admin-button--sm{min-height:var(--control-height-sm);padding-inline:.8rem;font-size:.78rem}.admin-icon-button{width:var(--control-height);height:var(--control-height);display:inline-grid;place-items:center;padding:0;border:1px solid var(--border);border-radius:50%;background:var(--surface-subtle);color:var(--text);font-size:var(--icon-size);transition:var(--control-transition)}.admin-icon-button:hover:not(:disabled){background:var(--surface-hover);border-color:var(--primary);color:var(--primary)}.admin-icon-button:disabled{opacity:.55;cursor:not-allowed}.admin-content :where(input:not([type='checkbox']):not([type='radio']):not([type='file']),select,textarea),.jalali-input{min-height:var(--control-height);border:1px solid var(--border-strong);border-radius:var(--control-radius);background:var(--input);color:var(--text);font-size:var(--control-font-size);transition:var(--control-transition)}.admin-content :where(input:not([type='checkbox']):not([type='radio']):not([type='file']),select){padding-inline:var(--control-padding-x)}.admin-content :where(input,select,textarea):disabled{opacity:.6;cursor:not-allowed;background:var(--surface-subtle)}.jalali-input{width:100%!important;padding-inline:var(--control-padding-x)!important}.jalali-input:focus{border-color:var(--primary)!important;box-shadow:0 0 0 3px var(--focus)!important;outline:0}
