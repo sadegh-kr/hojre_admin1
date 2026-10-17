@@ -32,6 +32,7 @@ defineEmits(['add'])
     <div class="item-info">
       <div class="item-name">{{ item.name }}</div>
       <div class="item-price">{{ formattedPrice }} تومان</div>
+      <div class="item-availability">{{ item.availability_message || 'موجودی قابل محاسبه نیست' }}</div>
     </div>
     <div class="add-overlay">
       <span class="add-icon">+</span>
@@ -51,7 +52,7 @@ defineEmits(['add'])
   cursor: pointer;
   transition: all 0.2s;
   position: relative;
-  height: 64px;
+  min-height: 72px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
 }
 
@@ -96,6 +97,13 @@ defineEmits(['add'])
   font-size: 11px;
   color: var(--color-success);
   font-weight: 700;
+}
+
+.item-availability {
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.2;
 }
 
 .add-overlay {

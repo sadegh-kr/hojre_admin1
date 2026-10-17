@@ -2,7 +2,7 @@
   <section class="expense-page" dir="rtl">
     <header class="expense-hero">
       <div><nav class="breadcrumbs"><RouterLink to="/dashboard">داشبورد</RouterLink><span>/</span><strong>مدیریت هزینه‌ها</strong></nav><p class="eyebrow">حسابداری روزانه</p><h1>هزینه‌ها</h1><p>ثبت و پیگیری هزینه‌ها، بررسی مبالغ در بازه زمانی و مشاهده گزارش دسته‌بندی‌ها.</p></div>
-      <div class="hero-actions"><RouterLink class="secondary" to="/dashboard/cost-control/expense-categories">دسته‌بندی‌ها</RouterLink><button class="primary create-button" @click="openCreate"><span>＋</span><strong>ثبت هزینه</strong></button></div>
+      <div class="hero-actions"><RouterLink class="secondary" to="/dashboard/cost-control/overheads">هزینه‌های سربار</RouterLink><RouterLink class="secondary" to="/dashboard/cost-control/expense-categories">دسته‌بندی‌ها</RouterLink><button class="primary create-button" @click="openCreate"><span>＋</span><strong>ثبت هزینه</strong></button></div>
     </header>
 
     <section class="summary-grid" aria-label="خلاصه هزینه‌ها">

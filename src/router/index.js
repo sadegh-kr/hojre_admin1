@@ -25,6 +25,7 @@ const ProductRecipe = () => import("@/view/cost/ProductRecipe.vue");
 const ExpenseCategories = () => import("@/view/cost/ExpenseCategories.vue");
 const ProductionCosts = () => import("@/view/cost/ProductionCosts.vue");
 const CostReports = () => import("@/view/cost/CostReports.vue");
+const InventoryOverview = () => import("@/view/inventory/InventoryOverview.vue");
 const LoyaltyOverview = () => import("@/view/loyalty/LoyaltyOverview.vue");
 const LoyaltyMembers = () => import("@/view/loyalty/LoyaltyMembers.vue");
 const LoyaltyCustomerCreate = () => import("@/view/loyalty/LoyaltyCustomerCreate.vue");
@@ -69,6 +70,16 @@ const routes = [
                     { path: "production-costs", component: ProductionCosts },
                     { path: "reports", component: CostReports },
                     { path: "overheads", component: CostOverheads },
+                ],
+            },
+            {
+                path: "inventory",
+                component: ProductManagement,
+                meta: { requiresOwner: true },
+                children: [
+                    { path: "", component: InventoryOverview },
+                    { path: "materials", component: CostIngredients, meta: { ingredientCatalog: true } },
+                    { path: "waste", component: InventoryOverview, meta: { inventoryView: "waste" } },
                 ],
             },
             { path: "expenses", redirect: "/dashboard/cost-control/expenses" },

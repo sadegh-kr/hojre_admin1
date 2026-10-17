@@ -15,6 +15,8 @@ import productCostApi from '@/api/product-cost.api'
 import restaurantApi from '@/api/restaurant.api'
 import loyaltyApi from '@/api/loyalty.api'
 import CustomerQuickSearch from '@/components/loyalty/CustomerQuickSearch.vue'
+import { useRestaurantStore } from '@/store/restaurant'
+import { resolveHojrehRestaurant, resolveTaleghaniPosBranch } from '@/utils/posBranchContext'
 
 // ========== حالت‌ها ==========
 const loading = ref(true)
@@ -46,33 +48,77 @@ const categoryManagerError = ref('')
 const categoryManagerFieldErrors = ref({})
 const route = useRoute()
 const router = useRouter()
+const restaurantContext = useRestaurantStore()
 const orderType = computed(() => route.meta.orderType === 'phone' ? 'phone' : 'in_store')
 const selectedCustomer = ref(null)
 const selectedCustomerDetails = ref(null)
-const branches = ref([])
-const selectedBranch = ref('')
+const customerDetailsLoading = ref(false)
+const customerDetailsError = ref('')
+const activeOrderBranchId = ref('')
+const posContextLoading = ref(true)
+const posContextError = ref('')
+const posReady = computed(() => Boolean(activeOrderBranchId.value) && !posContextLoading.value && !posContextError.value)
 const selectedAddress = ref('')
 const selectedDelivery = ref('takeoutN')
 
-watch(selectedCustomer, async customer => {
+let customerDetailsRequestId = 0
+async function loadSelectedCustomerDetails({ resetAddress = true } = {}) {
+  const customer = selectedCustomer.value
+  const requestId = ++customerDetailsRequestId
   selectedCustomerDetails.value = null
-  selectedAddress.value = ''
-  if (!customer) return
-  try { selectedCustomerDetails.value = await loyaltyApi.customer(customer.customer_id) }
-  catch (cause) { toast.error(getApiErrorMessage(cause)) }
-})
-
-async function fetchBranches() {
+  customerDetailsError.value = ''
+  if (resetAddress) selectedAddress.value = ''
+  if (!customer) {
+    customerDetailsLoading.value = false
+    return
+  }
+  customerDetailsLoading.value = true
   try {
-    const response = await restaurantApi.listBranch()
-    const payload = response.data?.data || response.data
-    branches.value = payload?.results || payload || []
-    if (branches.value.length === 1) selectedBranch.value = branches.value[0].id
-  } catch (cause) { toast.error(getApiErrorMessage(cause)) }
+    const details = await loyaltyApi.customer(customer.customer_id)
+    if (requestId === customerDetailsRequestId) selectedCustomerDetails.value = details
+  } catch (cause) {
+    if (requestId === customerDetailsRequestId) {
+      customerDetailsError.value = getApiErrorMessage(cause)
+      toast.error(customerDetailsError.value)
+    }
+  } finally {
+    if (requestId === customerDetailsRequestId) customerDetailsLoading.value = false
+  }
+}
+watch(selectedCustomer, () => loadSelectedCustomerDetails())
+const walletBalance = computed(() => selectedCustomerDetails.value?.wallet_balance ?? null)
+function handleWalletSelection(selected) {
+  if (selected && selectedCustomer.value) loadSelectedCustomerDetails({ resetAddress: false })
 }
 
-function registerCustomer(phone = '') {
-  router.push({ path: '/dashboard/loyalty/customers/new', query: phone.length >= 10 ? { phone } : {} })
+async function initializePosBranch() {
+  activeOrderBranchId.value = ''
+  posContextLoading.value = true
+  posContextError.value = ''
+  try {
+    await restaurantContext.initialize()
+    if (restaurantContext.error) throw new Error(restaurantContext.error)
+
+    const restaurant = resolveHojrehRestaurant(restaurantContext.restaurants)
+    restaurantContext.setActiveRestaurant(restaurant.id)
+
+    const response = await restaurantApi.listBranch()
+    const payload = response.data?.data || response.data
+    const { branch } = resolveTaleghaniPosBranch(restaurantContext.restaurants, payload?.results || payload || [])
+    activeOrderBranchId.value = branch.id
+    await Promise.all([fetchCategories(), fetchItems()])
+  } catch (cause) {
+    activeOrderBranchId.value = ''
+    items.value = []
+    categories.value = []
+    itemData.value = null
+    categoryData.value = null
+    posContextError.value = cause?.message || getApiErrorMessage(cause)
+    toast.error(posContextError.value)
+  } finally {
+    posContextLoading.value = false
+    if (!activeOrderBranchId.value) loading.value = false
+  }
 }
 
 function reorderPrevious(order) {
@@ -109,15 +155,24 @@ let categoryRequestId = 0
 
 // ========== آیتم‌های فاکتور ==========
 const invoiceItems = ref([])
+const createIdempotencyKey = () => globalThis.crypto?.randomUUID?.()
+    || `admin-order-${Date.now()}-${Math.random().toString(16).slice(2)}`
+const checkoutIdempotencyKey = ref(createIdempotencyKey())
 
 // ========== دریافت دسته‌بندی‌ها ==========
 const fetchCategories = async () => {
   const requestId = ++categoryRequestId
   categoryError.value = ''
+  if (!activeOrderBranchId.value) {
+    categories.value = []
+    categoryData.value = null
+    return
+  }
   try {
     const params = {
       page: categoryPage.value,
-      page_size: categoryPageSize.value
+      page_size: categoryPageSize.value,
+      branch_id: activeOrderBranchId.value,
     }
 
     if (categorySearchQuery.value) {
@@ -143,13 +198,20 @@ watch(categorySearchQuery, () => {
 // ========== دریافت محصولات ==========
 const fetchItems = async () => {
   const requestId = ++itemRequestId
+  if (!activeOrderBranchId.value) {
+    items.value = []
+    itemData.value = null
+    loading.value = false
+    return
+  }
   try {
     loading.value = true
     error.value = null
 
     const params = {
       page: currentPage.value,
-      page_size: pageSize.value
+      page_size: pageSize.value,
+      branch_id: activeOrderBranchId.value,
     }
 
     if (searchQuery.value) {
@@ -221,29 +283,44 @@ const clearInvoice = () => {
 }
 
 // ========== ثبت سفارش از صفحه اقلام ==========
-const submitOrder = async () => {
+const submitOrder = async checkout => {
   if (!invoiceItems.value.length || submittingOrder.value) return
+  if (!posReady.value) {
+    toast.error(posContextError.value || 'شعبهٔ طالقانی هنوز برای ثبت سفارش آماده نیست.')
+    return
+  }
   submittingOrder.value = true
   try {
     const response = await orderApi.createOrderInStore({
       items: invoiceItems.value.map(item => item._item_option_id ? { item_option_id: item._item_option_id, quantity: item.quantity } : { item_id: item.id, quantity: item.quantity }),
-      branch_id: selectedBranch.value || undefined,
+      branch_id: activeOrderBranchId.value,
       customer_id: selectedCustomer.value?.customer_id || null,
       address_id: selectedAddress.value || null,
       order_type: orderType.value,
-      delivery: orderType.value === 'phone' ? selectedDelivery.value : 'dine-in'
+      delivery: orderType.value === 'phone' ? selectedDelivery.value : 'dine-in',
+      expected_total: checkout.expected_total,
+      payments: checkout.payments,
+      idempotency_key: checkoutIdempotencyKey.value
     })
     if (!response.data?.success) {
       const requestError = new Error(response.data?.error || response.data?.message || 'سفارش ثبت نشد.')
       requestError.order = response.data
       throw requestError
     }
-    const orderNumber = response.data.data?.order_number
+    const createdOrder = response.data.data
+    const orderNumber = createdOrder?.order_number
     invoiceItems.value = []
     selectedCustomer.value = null
+    checkoutIdempotencyKey.value = createIdempotencyKey()
     toast.success(orderNumber ? `سفارش شماره ${orderNumber} ثبت شد.` : 'سفارش با موفقیت ثبت شد.')
+    await router.push({ path: '/dashboard/orders', query: { order: createdOrder?.order_id } })
   } catch (cause) {
-    toast.error(getApiErrorMessage(cause))
+    const authoritativeTotal = cause.response?.data?.authoritative_total
+    if (authoritativeTotal !== undefined) {
+      toast.error(`قیمت فاکتور تغییر کرده است. مبلغ فعلی سرور ${Number(authoritativeTotal).toLocaleString('fa-IR')} تومان است؛ اقلام را بازبینی کنید.`)
+    } else {
+      toast.error(getApiErrorMessage(cause))
+    }
   } finally {
     submittingOrder.value = false
   }
@@ -389,7 +466,7 @@ const prevCategoryPage = () => {
 
 // ========== اجرای اولیه ==========
 onMounted(async () => {
-  await Promise.all([fetchCategories(), fetchItems(), fetchBranches()])
+  await initializePosBranch()
 })
 onBeforeUnmount(() => {
   clearTimeout(itemSearchTimer)
@@ -617,12 +694,8 @@ onBeforeUnmount(() => {
     <div class="invoice-section">
       <div class="pos-customer-panel">
         <CustomerQuickSearch v-model="selectedCustomer" :registration-source="orderType" />
-        <label class="pos-field">شعبه سفارش
-          <select v-model="selectedBranch" required>
-            <option value="" disabled>انتخاب شعبه مجاز</option>
-            <option v-for="branch in branches" :key="branch.id" :value="branch.id">{{ branch.name }}</option>
-          </select>
-        </label>
+        <p v-if="posContextLoading" class="pos-context-state">در حال آماده‌سازی شعبهٔ طالقانی…</p>
+        <p v-else-if="posContextError" class="pos-context-state pos-context-state--error" role="alert">{{ posContextError }}</p>
         <label v-if="orderType === 'phone' && selectedCustomerDetails?.addresses?.length" class="pos-field">آدرس تحویل
           <select v-model="selectedAddress">
             <option value="">بدون آدرس / دریافت حضوری</option>
@@ -640,10 +713,16 @@ onBeforeUnmount(() => {
       <ItemCalculator
           :items="invoiceItems"
           :submitting="submittingOrder"
+          :checkout-disabled="!posReady"
+          :customer="selectedCustomer"
+          :wallet-balance="walletBalance"
+          :wallet-loading="customerDetailsLoading"
+          :wallet-error="customerDetailsError"
           @update-quantity="updateQuantity"
           @remove-item="removeFromInvoice"
           @clear-invoice="clearInvoice"
           @submit-order="submitOrder"
+          @wallet-selection-change="handleWalletSelection"
       />
     </div>
     <CostToastHost />
@@ -672,7 +751,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .item-list-page {
   display: grid;
-  grid-template-columns: 1fr 380px;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 380px);
   gap: 20px;
   height: 100vh;
   background: var(--app-bg);
@@ -691,6 +770,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  min-width: 0;
   border: 1px solid var(--border);
 }
 
@@ -700,15 +780,19 @@ onBeforeUnmount(() => {
   border-radius: 20px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
   height: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--border);
 }
-.pos-customer-panel{padding:12px;border-bottom:1px solid var(--border);background:var(--surface-subtle)}
-.pos-customer-panel .customer-search{margin-bottom:8px}
+.pos-customer-panel{position:relative;z-index:5;flex:0 0 auto;min-width:0;padding:10px 12px;border-bottom:1px solid var(--border);background:var(--surface-subtle)}
 .pos-field{display:grid;gap:5px;color:var(--muted);font-size:12px;margin-top:8px}
-.pos-field select{width:100%}
+.pos-field select{width:100%;min-width:0}
+.pos-context-state{margin:8px 0 0;color:var(--muted);font-size:12px}.pos-context-state--error{color:var(--color-danger)}
 .previous-orders{margin:8px 0 0;color:var(--muted);font-size:12px}
-.previous-order-list{display:flex;gap:6px;overflow:auto;padding-top:8px}
+.previous-order-list{display:flex;gap:6px;max-width:100%;overflow:auto;padding-top:8px}
 
 /* ===== هدر محصولات ===== */
 .products-header {
@@ -1304,7 +1388,7 @@ onBeforeUnmount(() => {
 /* ===== رسپانسیو ===== */
 @media (max-width: 1024px) {
   .item-list-page {
-    grid-template-columns: 1fr 340px;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 340px);
   }
 }
 
@@ -1357,7 +1441,9 @@ onBeforeUnmount(() => {
   }
 
   .invoice-section {
-    height: 500px;
+    height: min(760px, calc(100vh - 24px));
+    min-height: 560px;
+    min-width: 0;
   }
 }
 </style>

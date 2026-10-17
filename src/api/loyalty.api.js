@@ -43,6 +43,8 @@ class LoyaltyAPI extends BaseAPI {
   rules() { return this.get(`${this.basePath}rules/`, this.scopedConfig()).then(this.unwrap) }
   createRule(data) { return this.post(`${this.basePath}rules/`, data, this.scopedConfig()).then(this.unwrap) }
   updateRule(id, data) { return this.patch(`${this.basePath}rules/${id}/`, data, this.scopedConfig()).then(this.unwrap) }
+  automaticEarningSettings() { return this.get(`${this.basePath}automatic-earning-settings/`, this.scopedConfig()).then(this.unwrap) }
+  updateAutomaticEarningSettings(data) { return this.patch(`${this.basePath}automatic-earning-settings/`, data, this.scopedConfig()).then(this.unwrap) }
   rewards() { return this.get(`${this.basePath}rewards/`, this.scopedConfig()).then(this.unwrap) }
   createReward(data) { return this.post(`${this.basePath}rewards/`, data, this.scopedConfig()).then(this.unwrap) }
   redeemReward(id, data) { return this.post(`${this.basePath}rewards/${id}/redeem/`, data, this.scopedConfig()).then(this.unwrap) }

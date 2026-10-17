@@ -1,551 +1,268 @@
-<!-- ItemCalculator.vue -->
 <script setup>
-import { computed } from 'vue'
+import { computed, reactive, ref, watch } from 'vue'
+import {
+  PAYMENT_METHODS,
+  applyAutomaticRemainder,
+  createPaymentState,
+  getSelectedMethods,
+  paymentTotals,
+  toMoneyNumber,
+  togglePaymentMethod,
+  updatePaymentAmount
+} from '@/utils/paymentAllocation'
 
 const props = defineProps({
-  items: {
-    type: Array,
-    default: () => []
-  },
-  submitting: {
-    type: Boolean,
-    default: false
-  }
+  items: { type: Array, default: () => [] },
+  submitting: { type: Boolean, default: false },
+  checkoutDisabled: { type: Boolean, default: false },
+  customer: { type: Object, default: null },
+  walletBalance: { type: [Number, String], default: null },
+  walletLoading: { type: Boolean, default: false },
+  walletError: { type: String, default: '' }
 })
 
-const emit = defineEmits(['update-quantity', 'remove-item', 'clear-invoice', 'submit-order'])
+const emit = defineEmits([
+  'update-quantity', 'remove-item', 'clear-invoice', 'submit-order', 'wallet-selection-change'
+])
 
-// ========== تبدیل قیمت به عدد ==========
-const toNumber = (value) => {
-  if (typeof value === 'number') return value
-  if (typeof value === 'string') {
-    // حذف کاما و کاراکترهای غیرعددی
-    const cleaned = value.replace(/[^\d]/g, '')
-    return parseInt(cleaned, 10) || 0
+const methods = PAYMENT_METHODS
+const payments = reactive(createPaymentState())
+const remainderMethod = ref('cash')
+const automaticRemainder = ref(true)
+
+const toNumber = toMoneyNumber
+const invoiceItems = computed(() => props.items.map((item, index) => {
+  const price = toNumber(item.price)
+  const quantity = item.quantity || 1
+  return { ...item, price, quantity, rowTotal: price * quantity, index: index + 1 }
+}))
+const subtotal = computed(() => invoiceItems.value.reduce((sum, item) => sum + item.rowTotal, 0))
+const selectedMethods = computed(() => getSelectedMethods(payments))
+const allocationTotals = computed(() => paymentTotals(payments, subtotal.value))
+const allocatedTotal = computed(() => allocationTotals.value.allocated)
+const difference = computed(() => allocationTotals.value.difference)
+const walletAmount = computed(() => toNumber(payments.wallet.amount))
+const numericWalletBalance = computed(() => props.walletBalance === null ? null : toNumber(props.walletBalance))
+const projectedWalletBalance = computed(() => numericWalletBalance.value === null
+  ? null
+  : numericWalletBalance.value - walletAmount.value)
+const walletSelected = computed(() => payments.wallet.selected)
+const allocationValid = computed(() => (
+  selectedMethods.value.length > 0
+  && selectedMethods.value.every(method => toNumber(payments[method.code].amount) > 0)
+  && difference.value === 0
+))
+const walletValid = computed(() => (
+  !walletSelected.value
+  || (
+    Boolean(props.customer)
+    && !props.walletLoading
+    && !props.walletError
+    && numericWalletBalance.value !== null
+    && projectedWalletBalance.value >= 0
+  )
+))
+const checkoutError = computed(() => {
+  if (!props.items.length) return ''
+  if (!selectedMethods.value.length) return 'حداقل یک روش پرداخت انتخاب کنید.'
+  if (selectedMethods.value.some(method => toNumber(payments[method.code].amount) <= 0)) {
+    return 'مبلغ هر روش انتخاب‌شده باید بیشتر از صفر باشد.'
   }
-  return 0
+  if (difference.value > 0) return `${formattedPrice(difference.value)} تومان از مبلغ سفارش تخصیص داده نشده است.`
+  if (difference.value < 0) return `${formattedPrice(Math.abs(difference.value))} تومان بیشتر از مبلغ سفارش تخصیص داده شده است.`
+  if (walletSelected.value && !props.customer) return 'برای پرداخت با کیف پول، مشتری را انتخاب کنید.'
+  if (walletSelected.value && props.walletLoading) return 'موجودی کیف پول در حال دریافت است.'
+  if (walletSelected.value && props.walletError) return props.walletError
+  if (walletSelected.value && projectedWalletBalance.value < 0) return 'موجودی کیف پول برای مبلغ انتخاب‌شده کافی نیست.'
+  return ''
+})
+const canSubmit = computed(() => (
+  !props.submitting && !props.checkoutDisabled && props.items.length > 0 && allocationValid.value && walletValid.value
+))
+
+function formattedPrice(value) {
+  return new Intl.NumberFormat('fa-IR').format(toNumber(value))
 }
-
-const invoiceItems = computed(() => {
-  return props.items.map((item, index) => {
-    // تبدیل قیمت به عدد
-    const price = toNumber(item.price)
-    const quantity = item.quantity || 1
-
-    return {
-      ...item,
-      price, // قیمت به صورت عدد
-      quantity,
-      rowTotal: price * quantity,
-      index: index + 1
-    }
-  })
-})
-
-const subtotal = computed(() => {
-  return invoiceItems.value.reduce((sum, item) => sum + item.rowTotal, 0)
-})
-
-// ========== فرمت عدد فارسی ==========
-const formattedPrice = (price) => {
-  const num = toNumber(price)
-  try {
-    return new Intl.NumberFormat('fa-IR').format(num)
-  } catch (e) {
-    return num?.toString() || '۰'
-  }
+function recalculateRemainder() {
+  if (!automaticRemainder.value || !payments[remainderMethod.value]?.selected) return
+  applyAutomaticRemainder(payments, subtotal.value, remainderMethod.value)
 }
-
-const increaseQuantity = (item) => {
+function toggleMethod(code, selected) {
+  const result = togglePaymentMethod(payments, code, selected, subtotal.value, remainderMethod.value)
+  if (!result.changed) return
+  remainderMethod.value = result.remainderMethod
+  automaticRemainder.value = result.automatic
+  if (code === 'wallet') emit('wallet-selection-change', selected)
+}
+function updateAmount(code, value) {
+  automaticRemainder.value = updatePaymentAmount(
+    payments, code, value, subtotal.value, remainderMethod.value, automaticRemainder.value
+  )
+}
+function setAsRemainder(code) {
+  remainderMethod.value = code
+  automaticRemainder.value = true
+  recalculateRemainder()
+}
+function increaseQuantity(item) {
   emit('update-quantity', item.id, (item.quantity || 1) + 1)
 }
-
-const decreaseQuantity = (item) => {
-  const newQty = (item.quantity || 1) - 1
-  if (newQty >= 1) {
-    emit('update-quantity', item.id, newQty)
-  }
+function decreaseQuantity(item) {
+  if ((item.quantity || 1) > 1) emit('update-quantity', item.id, item.quantity - 1)
 }
+function submit() {
+  if (!canSubmit.value) return
+  emit('submit-order', {
+    expected_total: subtotal.value,
+    payments: selectedMethods.value.map(method => ({
+      method: method.code,
+      amount: toNumber(payments[method.code].amount),
+      confirmed: method.code === 'wallet' ? true : Boolean(payments[method.code].confirmed),
+      reference: payments[method.code].reference.trim()
+    }))
+  })
+}
+
+watch(subtotal, total => {
+  if (selectedMethods.value.length === 1) {
+    payments[selectedMethods.value[0].code].amount = total
+    automaticRemainder.value = true
+  } else {
+    recalculateRemainder()
+  }
+}, { immediate: true })
 </script>
 
 <template>
-  <div class="calculator">
-    <!-- هدر فاکتور - ثابت در بالا -->
-    <div class="invoice-header">
-      <div class="header-right">
-        <span class="invoice-icon">🧾</span>
-        <h3>فاکتور فروش</h3>
-      </div>
-      <button @click="$emit('clear-invoice')" class="clear-all-btn" v-if="items.length">
-        حذف همه
-      </button>
-    </div>
+  <section class="calculator" aria-label="فاکتور و پرداخت سفارش">
+    <header class="invoice-header">
+      <div class="header-right"><span class="invoice-icon">🧾</span><h3>فاکتور فروش</h3></div>
+      <button v-if="items.length" type="button" class="clear-all-btn" @click="$emit('clear-invoice')">حذف همه</button>
+    </header>
 
-    <!-- لیست آیتم‌ها با اسکرول اختصاصی -->
-    <div class="invoice-items-container">
-      <div v-if="items.length === 0" class="empty-invoice">
-        <span class="empty-icon">📋</span>
-        <p>فاکتور خالی است</p>
-        <small>محصولات را از سمت راست انتخاب کنید</small>
-      </div>
-
-      <div v-else class="invoice-items">
-        <div v-for="item in invoiceItems" :key="item.id" class="invoice-row">
-          <div class="item-info">
-            <span class="item-index">{{ item.index }}</span>
-            <span class="item-name" :title="item.name">{{ item.name }}</span>
-          </div>
-
-          <div class="item-details">
-            <span class="item-price">{{ formattedPrice(item.price) }} تومان</span>
-
-            <div class="quantity-control">
-              <button @click="decreaseQuantity(item)" class="qty-btn">−</button>
-              <span class="quantity">{{ item.quantity || 1 }}</span>
-              <button @click="increaseQuantity(item)" class="qty-btn">+</button>
+    <div class="checkout-scroll">
+      <div class="invoice-items-container">
+        <div v-if="items.length === 0" class="empty-invoice">
+          <span class="empty-icon">📋</span><p>فاکتور خالی است</p><small>محصولات را از سمت راست انتخاب کنید</small>
+        </div>
+        <div v-else class="invoice-items">
+          <article v-for="item in invoiceItems" :key="item.id" class="invoice-row">
+            <div class="item-info">
+              <span class="item-index">{{ item.index }}</span>
+              <span class="item-name" :title="item.name">{{ item.name }}</span>
+              <button type="button" class="remove-btn" title="حذف" @click="$emit('remove-item', item.id)">×</button>
             </div>
-
-            <span class="row-total">{{ formattedPrice(item.rowTotal) }} تومان</span>
-
-            <button @click="$emit('remove-item', item.id)" class="remove-btn" title="حذف">
-              🗑️
-            </button>
-          </div>
+            <div class="item-details">
+              <span class="item-price">{{ formattedPrice(item.price) }} تومان</span>
+              <div class="quantity-control">
+                <button type="button" class="qty-btn" @click="decreaseQuantity(item)">−</button>
+                <span class="quantity">{{ item.quantity.toLocaleString('fa-IR') }}</span>
+                <button type="button" class="qty-btn" @click="increaseQuantity(item)">+</button>
+              </div>
+              <strong class="row-total">{{ formattedPrice(item.rowTotal) }} تومان</strong>
+            </div>
+            <small class="availability" :class="item.availability_status">
+              {{ item.availability_message || 'موجودی قابل محاسبه نیست' }}
+            </small>
+          </article>
         </div>
       </div>
+
+      <section class="invoice-summary">
+        <div class="summary-row"><span>جمع اقلام</span><span>{{ formattedPrice(subtotal) }} تومان</span></div>
+        <div class="summary-row total"><span>مبلغ قابل پرداخت</span><strong>{{ formattedPrice(subtotal) }} تومان</strong></div>
+      </section>
+
+      <section class="payment-section">
+        <div class="section-heading"><div><h4>روش پرداخت</h4><p>یک تا چهار روش را انتخاب و مبلغ را تقسیم کنید.</p></div></div>
+        <div class="method-selector">
+          <label v-for="method in methods" :key="method.code" :class="['method-chip', { selected: payments[method.code].selected }]">
+            <input
+              type="checkbox"
+              :checked="payments[method.code].selected"
+              :disabled="payments[method.code].selected && selectedMethods.length === 1"
+              @change="toggleMethod(method.code, $event.target.checked)"
+            >
+            <span>{{ method.label }}</span>
+          </label>
+        </div>
+
+        <div class="allocation-list">
+          <article v-for="method in selectedMethods" :key="method.code" class="allocation-row">
+            <div class="allocation-title">
+              <div><strong>{{ method.label }}</strong><small>{{ method.hint }}</small></div>
+              <button
+                v-if="selectedMethods.length > 1"
+                type="button"
+                :class="{ active: automaticRemainder && remainderMethod === method.code }"
+                @click="setAsRemainder(method.code)"
+              >تخصیص مانده</button>
+            </div>
+            <label class="amount-field">
+              <span>مبلغ (تومان)</span>
+              <input
+                type="number"
+                inputmode="numeric"
+                min="0"
+                step="1"
+                :value="payments[method.code].amount"
+                @input="updateAmount(method.code, $event.target.value)"
+              >
+            </label>
+            <label v-if="method.code !== 'wallet' && method.code !== 'card_to_card'" class="confirmation-field">
+              <input v-model="payments[method.code].confirmed" type="checkbox">
+              <span>دریافت وجه توسط اپراتور تأیید شد</span>
+            </label>
+            <label v-if="method.code === 'card_to_card' || method.code === 'pos'" class="reference-field">
+              <span>شماره پیگیری / رسید (اختیاری)</span>
+              <input v-model.trim="payments[method.code].reference" type="text" maxlength="128">
+            </label>
+          </article>
+        </div>
+
+        <div v-if="walletSelected" class="wallet-panel">
+          <template v-if="!customer"><strong>مشتری انتخاب نشده است</strong><span>برای استفاده از کیف پول، ابتدا مشتری را انتخاب کنید.</span></template>
+          <template v-else-if="walletLoading"><span>در حال دریافت موجودی واقعی کیف پول…</span></template>
+          <template v-else-if="walletError"><strong>دریافت موجودی ناموفق بود</strong><span>{{ walletError }}</span></template>
+          <template v-else>
+            <div><span>موجودی قابل استفاده</span><strong>{{ formattedPrice(numericWalletBalance) }} تومان</strong></div>
+            <div><span>پرداخت از کیف پول</span><strong>{{ formattedPrice(walletAmount) }} تومان</strong></div>
+            <div :class="{ danger: projectedWalletBalance < 0 }"><span>مانده پس از ثبت</span><strong>{{ formattedPrice(projectedWalletBalance) }} تومان</strong></div>
+          </template>
+        </div>
+
+        <div class="allocation-summary">
+          <div><span>جمع تخصیص</span><strong>{{ formattedPrice(allocatedTotal) }} تومان</strong></div>
+          <div :class="{ valid: difference === 0, danger: difference < 0 }">
+            <span>{{ difference < 0 ? 'مبلغ مازاد' : 'مانده تخصیص' }}</span>
+            <strong>{{ formattedPrice(Math.abs(difference)) }} تومان</strong>
+          </div>
+        </div>
+        <p v-if="checkoutError" class="checkout-error" role="alert">{{ checkoutError }}</p>
+        <p v-else class="checkout-ready">جمع پرداخت با مبلغ سفارش برابر است.</p>
+      </section>
     </div>
 
-    <!-- خلاصه فاکتور - ثابت در پایین -->
-    <div class="invoice-summary">
-      <div class="summary-row">
-        <span>جمع کل:</span>
-        <span>{{ formattedPrice(subtotal) }} تومان</span>
-      </div>
-
-      <div class="summary-row total">
-        <span>مبلغ سفارش:</span>
-        <span class="total-amount">{{ formattedPrice(subtotal) }} تومان</span>
-      </div>
-    </div>
-
-    <!-- دکمه ثبت - ثابت در پایین -->
-    <div class="invoice-actions">
-      <button
-          class="btn-register"
-          @click="$emit('submit-order')"
-          :disabled="submitting || items.length === 0"
-      >
-        <span v-if="submitting" class="spinner"></span>
-        <span v-else>✓</span>
+    <footer class="invoice-actions">
+      <p>پرداخت‌های بدون تأیید به‌صورت «در انتظار» ثبت می‌شوند.</p>
+      <button type="button" class="btn-register" :disabled="!canSubmit" @click="submit">
+        <span v-if="submitting" class="spinner"></span><span v-else>✓</span>
         {{ submitting ? 'در حال ثبت…' : 'ثبت سفارش' }}
       </button>
-    </div>
-  </div>
+    </footer>
+  </section>
 </template>
 
 <style scoped>
-.calculator {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background: var(--surface);
-  min-width: 380px;
-  max-width: 380px;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
-  border: 1px solid var(--border);
-}
-
-/* ===== هدر فاکتور ===== */
-.invoice-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 24px;
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  background: var(--surface);
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.invoice-icon {
-  font-size: 22px;
-  color: var(--color-success);
-}
-
-.invoice-header h3 {
-  margin: 0;
-  font-size: 18px;
-  color: var(--text);
-  font-weight: 700;
-}
-
-.clear-all-btn {
-  font-size: 12px;
-  color: var(--color-danger);
-  background: none;
-  border: 1px solid var(--color-danger-subtle);
-  padding: 6px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
-  flex-shrink: 0;
-  font-weight: 500;
-}
-
-.clear-all-btn:hover {
-  background: var(--color-danger-subtle);
-  border-color: var(--color-danger);
-}
-
-/* ===== کانتینر آیتم‌ها با اسکرول ===== */
-.invoice-items-container {
-  flex: 1;
-  min-height: 0;
-  background: var(--surface-subtle);
-  overflow-y: auto;
-}
-
-.invoice-items {
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-/* ===== حالت خالی ===== */
-.empty-invoice {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 300px;
-  color: var(--muted);
-  text-align: center;
-  padding: 20px;
-}
-
-.empty-icon {
-  font-size: 64px;
-  margin-bottom: 16px;
-  opacity: 0.5;
-}
-
-.empty-invoice p {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 8px;
-  color: var(--text);
-}
-
-.empty-invoice small {
-  font-size: 12px;
-  color: var(--muted);
-}
-
-/* ===== ردیف آیتم ===== */
-.invoice-row {
-  background: var(--surface-elevated);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 14px;
-  flex-shrink: 0;
-  transition: all 0.2s;
-}
-
-.invoice-row:hover {
-  border-color: var(--border-strong);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-}
-
-.item-info {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-
-.item-index {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--surface-subtle);
-  color: var(--text);
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-
-.item-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.item-details {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.item-price {
-  font-size: 12px;
-  color: var(--muted);
-  min-width: 70px;
-  font-weight: 500;
-}
-
-/* ===== کنترل تعداد ===== */
-.quantity-control {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--surface-subtle);
-  padding: 2px;
-  border-radius: 8px;
-  flex-shrink: 0;
-}
-
-.qty-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: var(--surface-elevated);
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 18px;
-  color: var(--text);
-  transition: all 0.2s;
-  border: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-.qty-btn:hover {
-  background: var(--color-success);
-  border-color: var(--color-success);
-  color: var(--on-success);
-}
-
-.qty-btn:active {
-  transform: scale(0.95);
-}
-
-.quantity {
-  min-width: 30px;
-  text-align: center;
-  font-weight: 700;
-  font-size: 14px;
-  color: var(--text);
-}
-
-/* ===== قیمت‌ها ===== */
-.row-total {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-  min-width: 90px;
-  text-align: left;
-  white-space: nowrap;
-}
-
-.remove-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 18px;
-  padding: 4px 8px;
-  opacity: 0.4;
-  transition: all 0.2s;
-  flex-shrink: 0;
-  border-radius: 6px;
-}
-
-.remove-btn:hover {
-  opacity: 1;
-  background: var(--color-danger-subtle);
-}
-
-/* ===== خلاصه فاکتور ===== */
-.invoice-summary {
-  padding: 20px 24px;
-  background: var(--surface);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-}
-
-.summary-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px 0;
-  font-size: 15px;
-  color: var(--muted);
-}
-
-.summary-row.tax {
-  border-bottom: 1px dashed var(--border);
-  padding-bottom: 14px;
-}
-
-.summary-row.total {
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--text);
-  padding-top: 14px;
-}
-
-.total-amount {
-  color: var(--color-success);
-  font-size: 22px;
-}
-
-/* ===== دکمه ثبت ===== */
-.invoice-actions {
-  padding: 20px 24px;
-  flex-shrink: 0;
-  background: var(--surface);
-}
-
-.btn-register {
-  width: 100%;
-  padding: 16px;
-  background: var(--color-success);
-  color: var(--on-success);
-  border: none;
-  border-radius: 12px;
-  font-size: 16px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.2);
-}
-
-.btn-register:hover {
-  background: var(--color-success-hover);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(76, 175, 80, 0.3);
-}
-
-.btn-register:active {
-  transform: translateY(0);
-}
-
-.btn-icon {
-  font-size: 20px;
-  font-weight: 600;
-}
-
-/* ===== اسکرول بار اختصاصی ===== */
-.invoice-items-container::-webkit-scrollbar {
-  width: 4px;
-}
-
-.invoice-items-container::-webkit-scrollbar-track {
-  background: var(--surface-subtle);
-}
-
-.invoice-items-container::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
-  border-radius: 4px;
-}
-
-.invoice-items-container::-webkit-scrollbar-thumb:hover {
-  background: var(--muted);
-}
-
-/* ===== حالت موبایل ===== */
-@media (max-width: 768px) {
-  .calculator {
-    min-width: 100%;
-    max-width: 100%;
-    border-radius: 20px 20px 0 0;
-  }
-
-  .item-details {
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-
-  .item-price {
-    min-width: 60px;
-  }
-
-  .row-total {
-    min-width: 70px;
-  }
-
-  .quantity-control {
-    margin: 0 auto;
-  }
-
-  .invoice-header {
-    padding: 16px 20px;
-  }
-
-  .invoice-summary,
-  .invoice-actions {
-    padding: 16px 20px;
-  }
-
-  .summary-row.total {
-    font-size: 18px;
-  }
-
-  .total-amount {
-    font-size: 20px;
-  }
-}
-
-/* ===== حالت صفحه‌های خیلی کوچک ===== */
-@media (max-width: 480px) {
-  .item-details {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .item-price {
-    text-align: center;
-    min-width: auto;
-  }
-
-  .quantity-control {
-    justify-content: center;
-  }
-
-  .row-total {
-    text-align: center;
-  }
-
-  .remove-btn {
-    position: absolute;
-    top: 8px;
-    left: 8px;
-  }
-
-  .invoice-row {
-    position: relative;
-    padding-top: 20px;
-  }
-}
+.calculator{display:flex;flex:1;flex-direction:column;height:100%;min-height:0;min-width:0;background:var(--surface);border-radius:20px;overflow:hidden;color:var(--text)}
+.invoice-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border);flex:0 0 auto}.header-right{display:flex;align-items:center;gap:9px}.invoice-icon{font-size:20px}.invoice-header h3{margin:0;font-size:16px}.clear-all-btn{border:1px solid var(--color-danger-subtle);border-radius:999px;padding:5px 11px;background:transparent;color:var(--color-danger);font:inherit;font-size:11px;cursor:pointer}
+.checkout-scroll{flex:1;min-height:0;overflow-y:auto;background:var(--surface-subtle)}.invoice-items-container{min-height:150px}.invoice-items{display:grid;gap:8px;padding:12px}.empty-invoice{display:grid;place-items:center;align-content:center;min-height:180px;color:var(--muted);text-align:center}.empty-icon{font-size:38px}.empty-invoice p{margin:8px 0 2px;font-weight:700}.empty-invoice small{font-size:11px}
+.invoice-row{padding:11px;background:var(--surface);border:1px solid var(--border);border-radius:12px}.item-info,.item-details{display:flex;align-items:center;gap:8px}.item-index{display:grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--surface-subtle);font-size:10px;font-weight:800}.item-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:700}.remove-btn{border:0;background:transparent;color:var(--color-danger);font-size:18px;cursor:pointer}.item-details{justify-content:space-between;margin-top:8px;flex-wrap:wrap}.item-price{font-size:11px;color:var(--muted)}.row-total{font-size:12px;white-space:nowrap}.quantity-control{display:flex;align-items:center;gap:5px}.qty-btn{display:grid;place-items:center;width:26px;height:26px;border:1px solid var(--border);border-radius:7px;background:var(--surface);color:var(--text);cursor:pointer}.quantity{min-width:24px;text-align:center;font-size:12px;font-weight:800}.availability{display:block;margin-top:7px;color:var(--muted);font-size:10px}
+.invoice-summary,.payment-section{padding:14px 18px;border-top:1px solid var(--border);background:var(--surface)}.summary-row{display:flex;justify-content:space-between;padding:4px 0;color:var(--muted);font-size:12px}.summary-row.total{padding-top:9px;color:var(--text);font-size:15px}.summary-row.total strong{color:var(--color-success)}
+.section-heading h4{margin:0;font-size:14px}.section-heading p{margin:3px 0 10px;color:var(--muted);font-size:10px}.method-selector{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.method-chip{display:flex;align-items:center;gap:6px;padding:8px 9px;border:1px solid var(--border);border-radius:10px;background:var(--surface-subtle);font-size:11px;cursor:pointer}.method-chip.selected{border-color:var(--color-success);background:var(--color-success-subtle);color:var(--color-success)}.method-chip input{accent-color:var(--color-success)}
+.allocation-list{display:grid;gap:8px;margin-top:10px}.allocation-row{padding:10px;border:1px solid var(--border);border-radius:11px;background:var(--surface-subtle)}.allocation-title{display:flex;justify-content:space-between;gap:8px;align-items:start}.allocation-title strong,.allocation-title small{display:block}.allocation-title strong{font-size:12px}.allocation-title small{margin-top:2px;color:var(--muted);font-size:9px}.allocation-title button{border:1px solid var(--border);border-radius:999px;padding:4px 7px;background:var(--surface);color:var(--muted);font:inherit;font-size:9px;cursor:pointer}.allocation-title button.active{border-color:var(--color-success);color:var(--color-success)}.amount-field,.reference-field{display:grid;gap:4px;margin-top:8px;color:var(--muted);font-size:9px}.amount-field input,.reference-field input{width:100%;min-height:34px;border:1px solid var(--border-strong);border-radius:8px;padding:5px 8px;background:var(--input);color:var(--text);font:inherit;direction:ltr;text-align:left}.confirmation-field{display:flex;align-items:flex-start;gap:6px;margin-top:8px;font-size:10px;cursor:pointer}.confirmation-field input{accent-color:var(--color-success)}
+.wallet-panel{display:grid;gap:6px;margin-top:10px;padding:10px;border:1px solid var(--primary);border-radius:11px;background:color-mix(in srgb,var(--primary) 8%,var(--surface))}.wallet-panel>div,.allocation-summary>div{display:flex;justify-content:space-between;gap:8px;font-size:11px}.wallet-panel>span{font-size:10px;color:var(--muted)}.wallet-panel .danger,.allocation-summary .danger{color:var(--color-danger)}
+.allocation-summary{display:grid;gap:5px;margin-top:10px;padding-top:9px;border-top:1px dashed var(--border)}.allocation-summary .valid{color:var(--color-success)}.checkout-error,.checkout-ready{margin:9px 0 0;padding:7px 9px;border-radius:8px;font-size:10px}.checkout-error{background:var(--color-danger-subtle);color:var(--color-danger)}.checkout-ready{background:var(--color-success-subtle);color:var(--color-success)}
+.invoice-actions{flex:0 0 auto;padding:11px 16px 14px;border-top:1px solid var(--border);background:var(--surface)}.invoice-actions p{margin:0 0 7px;color:var(--muted);font-size:9px;text-align:center}.btn-register{display:flex;width:100%;min-height:46px;align-items:center;justify-content:center;gap:8px;border:0;border-radius:12px;background:var(--color-success);color:var(--on-success);font:inherit;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(76,175,80,.2)}.btn-register:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}.spinner{width:16px;height:16px;border:2px solid currentColor;border-left-color:transparent;border-radius:50%;animation:spin .75s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}.checkout-scroll::-webkit-scrollbar{width:5px}.checkout-scroll::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:999px}
+@media(max-width:768px){.calculator{height:100%;border-radius:16px}.method-selector{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>

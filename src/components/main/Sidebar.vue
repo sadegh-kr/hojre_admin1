@@ -19,7 +19,15 @@ const isAdmin = computed(() => auth.isAdmin)
 const canAccessFinancials = computed(() => auth.canAccessFinancials)
 const userName = computed(() => auth.user?.fullname || auth.user?.full_name || auth.user?.phone_number || 'مدیر')
 const sections = [
-  { label: 'اصلی', items: [{ label: 'داشبورد', to: '/dashboard', icon: 'home', exact: true }, { label: 'سفارش‌ها', to: '/dashboard/orders', icon: 'orders' }, { label: 'مشتریان', to: '/dashboard/user-list', icon: 'users' }, { label: 'اقلام منو', to: '/dashboard/item-list', icon: 'menu' }] },
+  { label: 'اصلی', items: [{ label: 'داشبورد', to: '/dashboard', icon: 'home', exact: true }, { label: 'سفارش‌ها', to: '/dashboard/orders', icon: 'orders' }, { label: 'مشتریان', to: '/dashboard/user-list', icon: 'users' }] },
+  { label: 'اقلام منو', items: [
+    { label: 'مدیریت اقلام', to: '/dashboard/item-list', icon: 'menu' },
+    { label: 'دستور ساخت (رسپی)', to: '/dashboard/cost-control/products', icon: 'chart', owner: true },
+  ] },
+  { label: 'انبار', owner: true, items: [
+    { label: 'مواد اولیه', to: '/dashboard/inventory/materials', icon: 'bag' },
+    { label: 'موجودی و گردش انبار', to: '/dashboard/inventory', icon: 'box', exact: true },
+  ] },
   { label: 'باشگاه مشتریان', items: [{ key: 'loyalty-club', label: 'باشگاه مشتریان', icon: 'star', children: [
     { label: 'نمای کلی', to: '/dashboard/loyalty' },
     { label: 'اعضای باشگاه', to: '/dashboard/loyalty/customers' },
@@ -33,18 +41,20 @@ const sections = [
     { label: 'تنظیمات باشگاه', to: '/dashboard/loyalty/settings', owner: true },
   ].filter(item => !item.owner || canAccessFinancials.value) }] },
   { label: 'مالی', owner: true, items: [{ key: 'cost-management', label: 'مدیریت هزینه', icon: 'wallet', children: [
-    { label: 'داشبورد هزینه', to: '/dashboard/cost-control/overview' },
-    { label: 'هزینه‌ها', to: '/dashboard/cost-control/expenses' },
-    { label: 'دسته‌بندی هزینه', to: '/dashboard/cost-control/expense-categories' },
-    { label: 'قیمت مواد اولیه', to: '/dashboard/cost-control/materials' },
-    { label: 'دستور تولید', to: '/dashboard/cost-control/products' },
-    { label: 'هزینه تولید', to: '/dashboard/cost-control/production-costs' },
-    { label: 'گزارش هزینه', to: '/dashboard/cost-control/reports' },
-    { label: 'هزینه‌های سربار', to: '/dashboard/cost-control/overheads' },
+    { label: 'هزینه مواد و بسته‌بندی', to: '/dashboard/cost-control/materials' },
+    { label: 'ضایعات', to: '/dashboard/inventory/waste' },
+    { label: 'هزینه‌های جاری و سربار', to: '/dashboard/cost-control/expenses' },
+    { label: 'بهای تمام‌شده و گزارش‌ها', to: '/dashboard/cost-control/overview' },
   ] }] },
   { label: 'دسترسی‌ها', owner: true, items: [{ label: 'مدیریت مدیران', to: '/dashboard/admin-access', icon: 'admin' }] },
 ]
-const visibleSections = computed(() => sections.filter(section => (!section.admin || isAdmin.value) && (!section.owner || canAccessFinancials.value)))
+const isVisible = item => (!item.admin || isAdmin.value) && (!item.owner || canAccessFinancials.value)
+const visibleSections = computed(() => sections.filter(isVisible).map(section => ({
+  ...section,
+  items: section.items.filter(isVisible).map(item => item.children
+    ? { ...item, children: item.children.filter(isVisible) }
+    : item),
+})).filter(section => section.items.length))
 const initialGroups = []
 if (route.path.startsWith('/dashboard/cost-control')) initialGroups.push('cost-management')
 if (route.path.startsWith('/dashboard/loyalty')) initialGroups.push('loyalty-club')

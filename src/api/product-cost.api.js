@@ -43,6 +43,11 @@ class ProductCostAPI extends BaseAPI {
   createIngredient(data) { return this.request(this.post(`${this.basePath}ingredients/`, data), true) }
   updateIngredient(id, data) { return this.request(this.patch(`${this.basePath}ingredients/${id}/`, data), true) }
   deleteIngredient(id) { return this.request(this.delete(`${this.basePath}ingredients/${id}/`), true) }
+  inventoryOverview() { return this.request(this.get(`${this.basePath}inventory/overview/`)) }
+  inventoryItems(params = {}) { return this.request(this.get(`${this.basePath}inventory/items/`, { params })) }
+  inventoryMovements(params = {}) { return this.request(this.get(`${this.basePath}inventory/movements/`, { params })) }
+  inventoryWaste(params = {}) { return this.request(this.get(`${this.basePath}inventory/waste/`, { params })) }
+  materialCategories(params = {}) { return this.request(this.get(`${this.basePath}inventory/material-categories/`, { params })) }
   overheads(params = {}) { return this.request(this.get(`${this.basePath}overheads/`, { params })) }
   createOverhead(data) { return this.request(this.post(`${this.basePath}overheads/`, data), true) }
   updateOverhead(id, data) { return this.request(this.patch(`${this.basePath}overheads/${id}/`, data), true) }
