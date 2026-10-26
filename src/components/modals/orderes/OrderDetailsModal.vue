@@ -21,19 +21,28 @@ import { computed, ref, watch } from 'vue'
 import BaseModal from '@/components/modals/BaseModal.vue'
 import OrderApi from '@/api/order.api.js'
 import { getApiErrorMessage } from '@/api/error'
+import { useCostToast } from '@/composables/useCostToast'
 
 const props = defineProps({ orderId: { type: String, default: null }, modelValue: Boolean })
 const emit = defineEmits(['update:modelValue', 'close', 'status-updated'])
 const visible = ref(props.modelValue), order = ref(null), loading = ref(false), error = ref(''), nextStatus = ref(''), statusUpdating = ref(false), statusError = ref('')
 const statuses = { pending: 'در انتظار تأیید', prep: 'در حال آماده‌سازی', send: 'در حال ارسال', deliver: 'تحویل‌شده', cancel: 'لغوشده' }
 const transitions = { pending: ['prep', 'cancel'], prep: ['send', 'cancel'], send: ['deliver', 'cancel'], deliver: [], cancel: [] }
-const availableStatuses = computed(() => (transitions[order.value?.status] || []).map(value => ({ value, label: statuses[value] })))
+const availableStatuses = computed(() => {
+  const current = order.value
+  if (!current) return []
+  const pickup = current.order_type === 'online' && current.delivery === 'dine-in'
+  const next = pickup && current.status === 'prep'
+    ? ['deliver', 'cancel']
+    : (transitions[current.status] || [])
+  return next.map(value => ({ value, label: pickup && value === 'deliver' ? 'تحویل داده شد' : statuses[value] }))
+})
 const number = value => Number(value || 0).toLocaleString('fa-IR')
 const money = value => `${number(value)} تومان`
 const formatDate = value => value ? new Intl.DateTimeFormat('fa-IR-u-ca-persian', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Tehran' }).format(new Date(value)) : '—'
 const errorText = cause => getApiErrorMessage(cause)
 async function load() { if (!props.orderId) return; loading.value = true; error.value = ''; statusError.value = ''; try { order.value = await OrderApi.getOrder(props.orderId); nextStatus.value = order.value.status } catch (cause) { error.value = errorText(cause) } finally { loading.value = false } }
-async function updateStatus() { if (!order.value || nextStatus.value === order.value.status || statusUpdating.value) return; statusUpdating.value = true; statusError.value = ''; try { order.value = await OrderApi.updateOrderStatus(order.value.id, { status: nextStatus.value }); nextStatus.value = order.value.status; emit('status-updated', order.value) } catch (cause) { nextStatus.value = order.value.status; statusError.value = errorText(cause) } finally { statusUpdating.value = false } }
+async function updateStatus() { if (!order.value || nextStatus.value === order.value.status || statusUpdating.value) return; statusUpdating.value = true; statusError.value = ''; try { order.value = await OrderApi.updateOrderStatus(order.value.id, { status: nextStatus.value }); nextStatus.value = order.value.status; emit('status-updated', order.value); useCostToast().success('وضعیت سفارش با موفقیت به‌روزرسانی شد.') } catch (cause) { nextStatus.value = order.value.status; statusError.value = errorText(cause) } finally { statusUpdating.value = false } }
 function close() { visible.value = false; emit('update:modelValue', false); emit('close') }
 function printInvoice() { window.print() }
 watch(() => props.modelValue, value => { visible.value = value; if (value) load() }, { immediate: true })

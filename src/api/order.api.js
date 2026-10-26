@@ -20,6 +20,13 @@ class OrderAPI extends BaseAPI {
         })
     }
 
+    getOnlineOrderNotifications(restaurantId, cursor = null) {
+        const params = { restaurant_id: restaurantId }
+        if (cursor?.created) params.cursor_created = cursor.created
+        if (cursor?.id) params.cursor_id = cursor.id
+        return this.request(this.get(`${this.basePath}admin/online-notifications/`, { params }))
+    }
+
     async request(promise, notify = false) {
         try {
             const { data } = await promise

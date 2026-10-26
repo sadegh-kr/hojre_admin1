@@ -1,0 +1,15 @@
+/* The supplied font files use typographic names for their intended weights. */
+@font-face { font-family: "Bahij TheSansArabic"; src: url("./fonts/Bahij TheSansArabic-ExtraLight.TTF") format("truetype"); font-style: normal; font-weight: 200; font-display: swap; }
+@font-face { font-family: "Bahij TheSansArabic"; src: url("./fonts/Bahij TheSansArabic-Light.TTF") format("truetype"); font-style: normal; font-weight: 300; font-display: swap; }
+@font-face { font-family: "Bahij TheSansArabic"; src: url("./fonts/Bahij TheSansArabic-SemiLight.TTF") format("truetype"); font-style: normal; font-weight: 350; font-display: swap; }
+@font-face { font-family: "Bahij TheSansArabic"; src: url("./fonts/Bahij TheSansArabic-Plain.TTF") format("truetype"); font-style: normal; font-weight: 400; font-display: swap; }
+@font-face { font-family: "Bahij TheSansArabic"; src: url("./fonts/Bahij TheSansArabic-SemiBold.TTF") format("truetype"); font-style: normal; font-weight: 600; font-display: swap; }
+@font-face { font-family: "Bahij TheSansArabic"; src: url("./fonts/Bahij TheSansArabic-Bold.TTF") format("truetype"); font-style: normal; font-weight: 700; font-display: swap; }
+@font-face { font-family: "Bahij TheSansArabic"; src: url("./fonts/Bahij TheSansArabic-ExtraBold.TTF") format("truetype"); font-style: normal; font-weight: 800; font-display: swap; }
+@font-face { font-family: "Bahij TheSansArabic"; src: url("./fonts/Bahij TheSansArabic-Black.TTF") format("truetype"); font-style: normal; font-weight: 900; font-display: swap; }
+
+:root {
+  --font-family-primary: "Bahij TheSansArabic", Tahoma, Arial, sans-serif;
+  --font-family-display: var(--font-family-primary);
+  --font-family-base: var(--font-family-primary);
+}

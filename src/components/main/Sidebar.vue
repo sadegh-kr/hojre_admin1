@@ -1,17 +1,19 @@
 <template>
   <aside class="sidebar" :class="{ collapsed: isCollapsed, open: isMobileOpen }" dir="rtl">
     <div class="sidebar-brand"><div v-if="!isCollapsed || isMobileOpen"><strong>کافه‌حجره</strong><span>مدیریت رستوران</span></div><button class="icon-btn admin-icon-button" @click="toggle" :aria-label="isCollapsed ? 'باز کردن سایدبار' : 'بستن سایدبار'"><AppIcon name="menu-toggle" /></button></div>
-    <nav aria-label="منوی مدیریت"><template v-for="section in visibleSections" :key="section.label"><p v-if="!isCollapsed || isMobileOpen" class="section-title">{{ section.label }}</p><template v-for="item in section.items" :key="item.key || item.to"><div v-if="item.children" class="nav-group" :class="{ active: isCurrent(item) }"><button type="button" class="nav-link nav-parent" :class="{ active: isCurrent(item) }" :aria-label="item.label" :aria-expanded="isGroupOpen(item)" @click="toggleGroup(item)"><AppIcon :name="item.icon" class="nav-icon" /><span v-if="!isCollapsed || isMobileOpen" class="parent-label">{{ item.label }}</span><AppIcon v-if="!isCollapsed || isMobileOpen" name="chevron" class="chevron" :class="{ expanded: isGroupOpen(item) }" /></button><div v-if="isGroupOpen(item) && (!isCollapsed || isMobileOpen)" class="submenu"><RouterLink v-for="child in item.children" :key="child.to" :to="child.to" class="submenu-link" :class="{ active: isCurrent(child) }" @click="$emit('close-mobile-sidebar')"><span>{{ child.label }}</span></RouterLink></div></div><RouterLink v-else :to="item.to" class="nav-link" :class="{ active: isCurrent(item) }" :aria-label="item.label" @click="$emit('close-mobile-sidebar')"><AppIcon :name="item.icon" class="nav-icon" /><span v-if="!isCollapsed || isMobileOpen">{{ item.label }}</span></RouterLink></template></template></nav>
+    <nav aria-label="منوی مدیریت"><template v-for="section in visibleSections" :key="section.label"><p v-if="!isCollapsed || isMobileOpen" class="section-title">{{ section.label }}</p><template v-for="item in section.items" :key="item.key || item.to"><div v-if="item.children" class="nav-group" :class="{ active: isCurrent(item) }"><button type="button" class="nav-link nav-parent" :class="{ active: isCurrent(item) }" :aria-label="item.label" :aria-expanded="isGroupOpen(item)" @click="toggleGroup(item)"><AppIcon :name="item.icon" class="nav-icon" /><span v-if="!isCollapsed || isMobileOpen" class="parent-label">{{ item.label }}</span><AppIcon v-if="!isCollapsed || isMobileOpen" name="chevron" class="chevron" :class="{ expanded: isGroupOpen(item) }" /></button><div v-if="isGroupOpen(item) && (!isCollapsed || isMobileOpen)" class="submenu"><RouterLink v-for="child in item.children" :key="child.to" :to="child.to" class="submenu-link" :class="{ active: isCurrent(child) }" @click="$emit('close-mobile-sidebar')"><span>{{ child.label }}</span><span v-if="child.warningBadge && pricingWarningCount > 0" class="pricing-warning-badge" aria-hidden="true">{{ pricingWarningLabel }}</span><span v-if="child.warningBadge && pricingWarningCount > 0" class="sr-only">{{ pricingWarningCount }} پیشنهاد قیمت نیازمند بررسی</span></RouterLink></div></div><RouterLink v-else :to="item.to" class="nav-link" :class="{ active: isCurrent(item) }" :aria-label="item.label" @click="$emit('close-mobile-sidebar')"><AppIcon :name="item.icon" class="nav-icon" /><span v-if="!isCollapsed || isMobileOpen">{{ item.label }}</span></RouterLink></template></template></nav>
     <div class="sidebar-footer"><span v-if="!isCollapsed || isMobileOpen" class="sidebar-user"><AppIcon name="user" />{{ userName }}</span><HojrehSidebarArt v-if="!isCollapsed || isMobileOpen" /><button class="logout admin-button admin-button--ghost admin-button--sm" @click="logout" aria-label="خروج از حساب"><AppIcon name="logout" /><span v-if="!isCollapsed || isMobileOpen">خروج</span></button></div>
   </aside>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/store/auth'
 import AppIcon from '@/components/common/AppIcon.vue'
 import HojrehSidebarArt from '@/components/main/HojrehSidebarArt.vue'
+import API from '@/api/product-cost.api.js'
+import { pricingWarningEvent } from '@/utils/pricingWarnings'
 const props = defineProps({ isMobileOpen: Boolean, isCollapsed: Boolean })
 const emit = defineEmits(['sidebar-collapsed', 'close-mobile-sidebar'])
 const router = useRouter(), route = useRoute(), auth = useAuthStore()
@@ -21,12 +23,11 @@ const userName = computed(() => auth.user?.fullname || auth.user?.full_name || a
 const sections = [
   { label: 'اصلی', items: [{ label: 'داشبورد', to: '/dashboard', icon: 'home', exact: true }, { label: 'سفارش‌ها', to: '/dashboard/orders', icon: 'orders' }, { label: 'مشتریان', to: '/dashboard/user-list', icon: 'users' }] },
   { label: 'اقلام منو', items: [
-    { label: 'مدیریت اقلام', to: '/dashboard/item-list', icon: 'menu' },
-    { label: 'دستور ساخت (رسپی)', to: '/dashboard/cost-control/products', icon: 'chart', owner: true },
+    { label: 'سفارش جدید', to: '/dashboard/item-list', icon: 'menu' },
   ] },
   { label: 'انبار', owner: true, items: [
     { label: 'مواد اولیه', to: '/dashboard/inventory/materials', icon: 'bag' },
-    { label: 'موجودی و گردش انبار', to: '/dashboard/inventory', icon: 'box', exact: true },
+    { label: 'دستور تولید', to: '/dashboard/inventory/recipes', icon: 'chart' },
   ] },
   { label: 'باشگاه مشتریان', items: [{ key: 'loyalty-club', label: 'باشگاه مشتریان', icon: 'star', children: [
     { label: 'نمای کلی', to: '/dashboard/loyalty' },
@@ -40,11 +41,10 @@ const sections = [
     { label: 'گزارش باشگاه', to: '/dashboard/loyalty/reports', owner: true },
     { label: 'تنظیمات باشگاه', to: '/dashboard/loyalty/settings', owner: true },
   ].filter(item => !item.owner || canAccessFinancials.value) }] },
-  { label: 'مالی', owner: true, items: [{ key: 'cost-management', label: 'مدیریت هزینه', icon: 'wallet', children: [
-    { label: 'هزینه مواد و بسته‌بندی', to: '/dashboard/cost-control/materials' },
-    { label: 'ضایعات', to: '/dashboard/inventory/waste' },
+  { label: 'مالی', owner: true, items: [{ key: 'cost-management', label: 'مدیریت هزینه‌ها', icon: 'wallet', children: [
+    { label: 'آپدیت قیمت', to: '/dashboard/cost-control/production-costs', warningBadge: true },
     { label: 'هزینه‌های جاری و سربار', to: '/dashboard/cost-control/expenses' },
-    { label: 'بهای تمام‌شده و گزارش‌ها', to: '/dashboard/cost-control/overview' },
+    { label: 'گزارش‌های هزینه', to: '/dashboard/cost-control/reports' },
   ] }] },
   { label: 'دسترسی‌ها', owner: true, items: [{ label: 'مدیریت مدیران', to: '/dashboard/admin-access', icon: 'admin' }] },
 ]
@@ -59,11 +59,44 @@ const initialGroups = []
 if (route.path.startsWith('/dashboard/cost-control')) initialGroups.push('cost-management')
 if (route.path.startsWith('/dashboard/loyalty')) initialGroups.push('loyalty-club')
 const openGroups = ref(new Set(initialGroups))
+const pricingWarningCount = ref(null)
+const pricingWarningLabel = computed(() => Number(pricingWarningCount.value || 0).toLocaleString('fa-IR'))
+let warningRequest = 0
+let warningInFlight = null
 function toggle() { emit('sidebar-collapsed', !props.isCollapsed) }
 function isCurrent(item) { if (item.children) return item.children.some(isCurrent); return item.exact ? route.path === item.to : route.path === item.to || route.path.startsWith(`${item.to}/`) }
 function isGroupOpen(item) { return openGroups.value.has(item.key) }
 function toggleGroup(item) { if (props.isCollapsed && !props.isMobileOpen) emit('sidebar-collapsed', false); openGroups.value = openGroups.value.has(item.key) && !props.isCollapsed ? new Set() : new Set([item.key]) }
 watch(() => route.path, path => { if (path.startsWith('/dashboard/cost-control')) openGroups.value = new Set(['cost-management']); else if (path.startsWith('/dashboard/loyalty')) openGroups.value = new Set(['loyalty-club']) })
+async function refreshPricingWarnings() {
+  if (!canAccessFinancials.value) { pricingWarningCount.value = null; return }
+  if (warningInFlight) return warningInFlight
+  const request = ++warningRequest
+  const pending = API.pricingWarningSummary()
+  warningInFlight = pending
+  try {
+    const summary = await pending
+    if (request === warningRequest) pricingWarningCount.value = Number(summary.review_required_count)
+  } catch (error) {
+    if (request === warningRequest) pricingWarningCount.value = null
+    console.warn('Pricing warning summary is unavailable.', error)
+  } finally {
+    if (warningInFlight === pending) warningInFlight = null
+  }
+}
+function handlePricingWarningChange() { refreshPricingWarnings() }
+function handleVisibilityChange() { if (document.visibilityState === 'visible') refreshPricingWarnings() }
+watch(() => route.fullPath, refreshPricingWarnings)
+watch(canAccessFinancials, refreshPricingWarnings)
+onMounted(() => {
+  refreshPricingWarnings()
+  window.addEventListener(pricingWarningEvent, handlePricingWarningChange)
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener(pricingWarningEvent, handlePricingWarningChange)
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
+})
 function logout() { auth.logout(); emit('close-mobile-sidebar'); router.push('/login') }
 </script>
 
@@ -88,6 +121,7 @@ function logout() { auth.logout(); emit('close-mobile-sidebar'); router.push('/l
 .chevron.expanded{transform:rotate(90deg)}
 .submenu{display:grid;gap:3px;margin:6px 24px 10px 0;padding-right:15px;border-right:1px solid var(--border-strong)}
 .submenu-link{display:flex;align-items:center;min-height:36px;padding:7px 10px;border-radius:10px;color:var(--muted);text-decoration:none;font-size:.8rem}
+.submenu-link>span:first-child{min-width:0}.pricing-warning-badge{margin-right:auto;display:inline-grid;place-items:center;min-width:1.45rem;height:1.25rem;padding:0 .34rem;border-radius:999px;background:var(--color-warning,#b7791f);color:#fff;font-size:.65rem;font-weight:800;line-height:1}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .submenu-link:hover{background:var(--surface-hover);color:var(--text)}
 .submenu-link.active{background:var(--surface-hover);color:var(--primary);font-weight:700}
 .sidebar-footer{flex:0 0 auto;margin-top:auto;padding:6px 14px 14px;display:flex;flex-direction:column;gap:8px;overflow:hidden;border-top:0;font-size:.8rem;background:var(--surface-raised)}

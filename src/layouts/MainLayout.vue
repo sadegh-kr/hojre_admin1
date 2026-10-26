@@ -35,6 +35,7 @@
       </div>
     </main>
     <div v-if="mobileOpen" class="overlay" @click="mobileOpen=false" />
+    <CostToastHost />
   </div>
 </template>
 
@@ -44,8 +45,12 @@ import { RouterView, useRoute, useRouter } from 'vue-router'
 import HeaderComponent from '@/components/main/Header.vue'
 import SidebarComponent from '@/components/main/Sidebar.vue'
 import AppBackButton from '@/components/common/AppBackButton.vue'
+import CostToastHost from '@/components/cost/CostToastHost.vue'
 import { useRestaurantStore } from '@/store/restaurant'
 import { useAuthStore } from '@/store/auth'
+import OrderAPI from '@/api/order.api.js'
+import { useCostToast } from '@/composables/useCostToast'
+import { buildOnlineOrderMessage, createOnlineOrderPoller, onlineOrderCursorKey } from '@/utils/onlineOrderNotifications'
 
 const restaurantContext = useRestaurantStore()
 const auth = useAuthStore()
@@ -54,11 +59,40 @@ const router = useRouter()
 const isDark = ref(localStorage.getItem('cafeHojre-theme') === 'dark')
 const collapsed = ref(localStorage.getItem('cafeHojre-sidebar') === 'collapsed')
 const mobileOpen = ref(false)
+const toast = useCostToast()
+let onlineOrderPoller = null
 
 // Revalidate persisted selection on every authenticated layout mount. This
 // also prevents a restaurant from a previous account surviving re-login.
 restaurantContext.initialize(true)
-onUnmounted(() => restaurantContext.cancelInitialization())
+onUnmounted(() => {
+  onlineOrderPoller?.stop()
+  restaurantContext.cancelInitialization()
+})
+
+function restartOnlineOrderWatcher() {
+  onlineOrderPoller?.stop()
+  onlineOrderPoller = null
+  if (!auth.isAuthenticated || !auth.isAdmin || !restaurantContext.ready || !restaurantContext.activeRestaurantId) return
+  const restaurantId = restaurantContext.activeRestaurantId
+  onlineOrderPoller = createOnlineOrderPoller({
+    fetchBatch: cursor => OrderAPI.getOnlineOrderNotifications(restaurantId, cursor),
+    notify: order => toast.order(buildOnlineOrderMessage(order), {
+      title: 'سفارش آنلاین جدید ثبت شد',
+      action: () => router.push({ path: '/dashboard/orders', query: { order: order.id } }),
+    }),
+    storage: localStorage,
+    storageKey: onlineOrderCursorKey(auth.user?.id || auth.user?.phone_number, restaurantId),
+  })
+  onlineOrderPoller.start()
+}
+
+watch([
+  () => auth.isAuthenticated,
+  () => auth.isAdmin,
+  () => restaurantContext.ready,
+  () => restaurantContext.activeRestaurantId,
+], restartOnlineOrderWatcher, { immediate: true })
 
 function startNewSession() {
   restaurantContext.reset()

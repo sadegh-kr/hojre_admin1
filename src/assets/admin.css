@@ -1,5 +1,5 @@
 @import './base.css';
-@import './hojreh-vazirmatn.css';
+@import './hojreh-fonts.css';
 
 :root{
   --font-weight-regular:400;
@@ -170,7 +170,8 @@ body .modal-container :is(button[form]:not(.secondary),.save,.save-btn):hover:no
 .admin-shell .admin-content :is(.primary,.secondary,.primary-button,.secondary-btn,.cost-primary,.cost-secondary,.row-action,.danger-action,.action-btn):active:not(:disabled),body .modal-container :is(.primary,.secondary,.save,.save-btn,.close,.upload-button,.remove-button):active:not(:disabled){transform:translateY(0)}
 
 /* Keep technical data predictable inside the RTL interface. */
-:is([dir='ltr'],input[type='tel'],input[type='email'],input[type='url'],code,kbd,.technical-id){font-family:Tahoma,Arial,sans-serif;font-variant-numeric:tabular-nums}
+:is([dir='ltr'],input[type='tel'],input[type='email'],input[type='url'],code,kbd,.technical-id){font-variant-numeric:tabular-nums}
+:is(code,kbd,.technical-id){font-family:monospace}
 
 @media(max-width:640px){.admin-shell .admin-content :is(.admin-button,.primary,.secondary,.primary-button,.cost-primary,.cost-secondary){max-width:100%;white-space:normal;text-align:center}body .modal-container .modal-footer{flex-wrap:wrap}}
 

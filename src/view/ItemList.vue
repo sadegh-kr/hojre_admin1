@@ -6,7 +6,6 @@ import itemApi from "@/api/item.api.js";
 import orderApi from '@/api/order.api.js'
 import ItemCalculator from "@/components/item/ItemCalculator.vue";
 import ItemCard from "@/components/item/ItemCard.vue";
-import CostToastHost from '@/components/cost/CostToastHost.vue'
 import ProductCreateModal from '@/components/modals/ProductCreateModal.vue'
 import ProductCategoryManager from '@/components/modals/ProductCategoryManager.vue'
 import { useCostToast } from '@/composables/useCostToast'
@@ -308,12 +307,11 @@ const submitOrder = async checkout => {
       throw requestError
     }
     const createdOrder = response.data.data
-    const orderNumber = createdOrder?.order_number
     invoiceItems.value = []
     selectedCustomer.value = null
     checkoutIdempotencyKey.value = createIdempotencyKey()
-    toast.success(orderNumber ? `سفارش شماره ${orderNumber} ثبت شد.` : 'سفارش با موفقیت ثبت شد.')
-    await router.push({ path: '/dashboard/orders', query: { order: createdOrder?.order_id } })
+    toast.success('سفارش با موفقیت ثبت شد.')
+    await router.push({ path: '/dashboard/orders' })
   } catch (cause) {
     const authoritativeTotal = cause.response?.data?.authoritative_total
     if (authoritativeTotal !== undefined) {
@@ -725,7 +723,6 @@ onBeforeUnmount(() => {
           @wallet-selection-change="handleWalletSelection"
       />
     </div>
-    <CostToastHost />
     <ProductCreateModal
         v-model="showCreateProduct"
         :categories="productCategories"

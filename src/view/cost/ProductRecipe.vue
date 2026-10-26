@@ -1,8 +1,8 @@
 <template>
   <section class="recipe-page">
     <header class="recipe-heading">
-      <div><nav><RouterLink to="/dashboard/cost-control/products">محصولات</RouterLink><span>/</span><strong>دستور تولید</strong></nav><h2>{{product?.name||'دستور تولید محصول'}}</h2><p v-if="product">ترکیب مواد و مقدار مصرف برای تولید یک واحد {{product.name}}</p></div>
-      <AppBackButton class="back-button" fallback="/dashboard/cost-control/products" label="بازگشت به محصولات" />
+      <div><nav><RouterLink :to="recipeCatalogPath">محصولات</RouterLink><span>/</span><strong>دستور تولید</strong></nav><h2>{{product?.name||'دستور تولید محصول'}}</h2><p v-if="product">ترکیب مواد و مقدار مصرف برای تولید یک واحد {{product.name}}</p></div>
+      <AppBackButton class="back-button" :fallback="recipeCatalogPath" label="بازگشت به محصولات" />
     </header>
 
     <div v-if="loading" class="page-state"><i></i><span>در حال دریافت دستور تولید…</span></div>
@@ -45,6 +45,7 @@ import { costErrorMessage,formatCostNumber as number,formatMoney as money } from
 import { costSourceLabel, effectiveIngredientCost } from '@/utils/ingredientCost'
 
 const route=useRoute(),product=ref(null),ingredients=ref([]),lines=ref([]),loading=ref(true),saving=ref(false),deletingId=ref(null),loadError=ref(''),formError=ref(''),fieldErrors=ref({}),editingLine=ref(null)
+const recipeCatalogPath=computed(()=>route.meta.inventoryRecipes?'/dashboard/inventory/recipes':'/dashboard/cost-control/products')
 const form=reactive({ingredient:'',quantity:'',cost_kind:'material'})
 const selectedIngredient=computed(()=>ingredients.value.find(item=>String(item.id)===String(form.ingredient))),availableIngredients=computed(()=>ingredients.value.filter(item=>editingLine.value||!lines.value.some(line=>String(line.ingredient)===String(item.id)))),selectedIngredientCost=computed(()=>selectedIngredient.value?.effective_cost??effectiveIngredientCost(selectedIngredient.value)),estimatedLineCost=computed(()=>Number(form.quantity||0)*selectedIngredientCost.value),recipeTotal=computed(()=>lines.value.reduce((sum,line)=>sum+Number(line.line_cost||0),0)),hasMissingPrices=computed(()=>lines.value.some(line=>Number(line.unit_price||0)<=0))
 async function load(){loading.value=true;loadError.value='';try{const [productData,recipeData,ingredientData]=await Promise.all([API.product(route.params.productId),API.recipes(route.params.productId),API.activeIngredients()]);product.value=productData;lines.value=recipeData||[];ingredients.value=ingredientData}catch(cause){loadError.value=costErrorMessage(cause)}finally{loading.value=false}}

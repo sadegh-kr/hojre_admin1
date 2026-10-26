@@ -17,16 +17,14 @@
       <template #actions="{ row }"><button class="row-action" @click="openOrder(row.id)">جزئیات</button><button v-if="hasLocation(row)" class="map-action" @click="openMap(row)">نقشه</button></template>
     </AdminDataTable>
     <OrderDetailsModal v-if="selectedId" v-model="showModal" :order-id="selectedId" @close="selectedId = null" @status-updated="handleStatusUpdated" />
-    <CostToastHost />
   </section>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AdminDataTable from '@/components/admin/AdminDataTable.vue'
 import OrderDetailsModal from '@/components/modals/orderes/OrderDetailsModal.vue'
-import CostToastHost from '@/components/cost/CostToastHost.vue'
 import OrderAPI from '@/api/order.api.js'
 import { getApiErrorMessage } from '@/api/error'
 import { useRestaurantStore } from '@/store/restaurant'
@@ -71,13 +69,14 @@ function formatDate(value) { return value ? new Intl.DateTimeFormat('fa-IR-u-ca-
 const statusLabel = value => ({ pending: 'در انتظار تأیید', prep: 'در حال آماده‌سازی', send: 'در حال ارسال', deliver: 'تحویل‌شده', cancel: 'لغوشده' })[value] || value
 const orderTypeLabel = value => ({ online: 'آنلاین', in_store: 'حضوری', phone: 'تلفنی' })[value] || 'نامشخص'
 const deliveryLabel = value => ({ takeoutN: 'حضوری (آنی)', takeoutP: 'حضوری (پیش‌سفارش)', 'dine-in': 'مصرف در محل', delivery: 'ارسال' })[value] || value
-onMounted(() => {
-  fetchOrders()
+function openOrderFromRoute() {
   if (route.query.order) {
     selectedId.value = String(route.query.order)
     showModal.value = true
   }
-}); onBeforeUnmount(() => clearTimeout(timer))
+}
+watch(() => route.query.order, openOrderFromRoute, { immediate: true })
+onMounted(fetchOrders); onBeforeUnmount(() => clearTimeout(timer))
 </script>
 
 <style scoped>

@@ -406,7 +406,7 @@ const fetchOrders = async (page = 1) => {
 
     // TODO: اضافه کردن فیلتر تاریخ اگر API پشتیبانی می‌کند
 
-    const response = await OrderApi.userOrderList(props.userId, { params });
+    const response = await OrderApi.userOrderList(props.userId, params);
 
     // ذخیره داده‌های صفحه‌بندی شده
     orders.value = response.data.results || [];
@@ -459,7 +459,7 @@ const exportOrders = async () => {
   try {
     // دریافت تمام سفارشات برای خروجی اکسل
     const response = await OrderApi.userOrderList(props.userId, {
-      params: { page_size: paginationData.value.count || 100 }
+      page_size: paginationData.value.count || 100
     });
 
     const allOrders = response.data.results || [];
