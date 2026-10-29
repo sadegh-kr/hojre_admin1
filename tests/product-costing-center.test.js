@@ -13,10 +13,11 @@ test('costing center uses existing product and recipe APIs without price mutatio
   assert.doesNotMatch(page, /ProductPricingModal/)
 })
 
-test('legacy recipes are presented as one finished unit without double division', () => {
-  assert.match(page, /بازده رسپی فعلی/)
-  assert.match(page, /۱ واحد محصول نهایی/)
-  assert.match(page, /بدون تقسیم مجدد/)
+test('update prices hides recipe management UI while retaining recipe-derived costs', () => {
+  assert.doesNotMatch(page, /<section class="recipe-card"/)
+  assert.doesNotMatch(page, /class="recipe-link"/)
+  assert.doesNotMatch(page, /<section class="yield-panel"/)
+  assert.match(page, /API\.recipes\(id\)/)
   assert.match(page, /product\.final_production_cost/)
 })
 

@@ -41,7 +41,7 @@ const sections = [
     { label: 'گزارش باشگاه', to: '/dashboard/loyalty/reports', owner: true },
     { label: 'تنظیمات باشگاه', to: '/dashboard/loyalty/settings', owner: true },
   ].filter(item => !item.owner || canAccessFinancials.value) }] },
-  { label: 'مالی', owner: true, items: [{ key: 'cost-management', label: 'مدیریت هزینه‌ها', icon: 'wallet', children: [
+  { label: 'مالی', owner: true, items: [{ label: 'آمار', to: '/dashboard/finance/statistics', icon: 'chart' }, { key: 'cost-management', label: 'مدیریت هزینه‌ها', icon: 'wallet', children: [
     { label: 'آپدیت قیمت', to: '/dashboard/cost-control/production-costs', warningBadge: true },
     { label: 'هزینه‌های جاری و سربار', to: '/dashboard/cost-control/expenses' },
     { label: 'گزارش‌های هزینه', to: '/dashboard/cost-control/reports' },

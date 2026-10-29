@@ -20,6 +20,10 @@ class OrderAPI extends BaseAPI {
         })
     }
 
+    financialStatistics(restaurantId, params = {}) {
+        return this.request(this.get(`${this.basePath}admin/statistics/`, { params: { ...params, restaurant_id: restaurantId } }))
+    }
+
     getOnlineOrderNotifications(restaurantId, cursor = null) {
         const params = { restaurant_id: restaurantId }
         if (cursor?.created) params.cursor_created = cursor.created
@@ -43,6 +47,10 @@ class OrderAPI extends BaseAPI {
 
     getOrder(orderId) {
         return this.request(this.get(`${this.basePath}detail/${orderId}/`))
+    }
+
+    settleOrder(orderId, data) {
+        return this.request(this.post(`${this.basePath}detail/${orderId}/settle/`, data))
     }
 
     // ایجاد سفارش جدید

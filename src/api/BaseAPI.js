@@ -26,6 +26,12 @@ class BaseAPI {
             (config) => {
                 const authStore = useAuthStore()
 
+                // Let the browser generate the multipart boundary. Keeping the
+                // default JSON content type causes Axios to serialize FormData.
+                if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+                    config.headers.delete('Content-Type')
+                }
+
                 if (authStore.accessToken && !config.skipAuthRefresh) {
                     config.headers.Authorization = `Bearer ${authStore.accessToken}`
                 }

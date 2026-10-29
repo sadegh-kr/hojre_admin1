@@ -9,6 +9,14 @@
         <section class="info-grid"><article><h4>مشتری</h4><span>{{ order.customer_name || 'مشتری مهمان' }}</span><a v-if="order.customer_phone" :href="`tel:${order.customer_phone}`">{{ order.customer_phone }}</a></article><article><h4>تحویل</h4><span>{{ order.order_type_display }} · {{ order.branch_name }}</span><span>{{ order.delivery_display }}</span><span v-if="order.address_detail">{{ order.address_name }} — {{ order.address_detail }}</span><span v-else>آدرسی ثبت نشده است</span></article><article class="screen-only"><h4>وضعیت سفارش</h4><select v-model="nextStatus" :disabled="statusUpdating || !availableStatuses.length" @change="updateStatus"><option :value="order.status">{{ order.status_display }}</option><option v-for="status in availableStatuses" :key="status.value" :value="status.value">{{ status.label }}</option></select><small v-if="statusError">{{ statusError }}</small><span v-if="statusUpdating">در حال ذخیره…</span></article></section>
         <section class="items"><h4>اقلام سفارش</h4><table><thead><tr><th>آیتم</th><th>تعداد</th><th>قیمت واحد</th><th>جمع</th></tr></thead><tbody><tr v-for="item in order.items" :key="item.id"><td>{{ item.name }}</td><td>{{ number(item.quantity) }}</td><td>{{ money(item.unit_price) }}</td><td>{{ money(item.total_price) }}</td></tr></tbody></table></section>
         <section class="bottom-grid"><article><h4>پرداخت‌ها</h4><div v-if="!order.payments.length" class="muted">پرداختی ثبت نشده است.</div><div v-for="payment in order.payments" :key="payment.id" class="payment"><span>{{ payment.method_display }} · {{ payment.status_display }}</span><strong>{{ money(payment.amount) }}</strong><small v-if="payment.transaction_id">شماره پیگیری: {{ payment.transaction_id }}</small><small v-if="payment.confirmed_by_name">تأییدکننده: {{ payment.confirmed_by_name }}</small></div></article><article class="totals"><h4>جمع‌بندی</h4><div><span>جمع اقلام</span><strong>{{ money(order.total_cost) }}</strong></div><div><span>تخفیف{{ order.discount_percent ? ` (${number(order.discount_percent)}٪)` : '' }}</span><strong>{{ money(order.discount_amount) }}</strong></div><div><span>مبلغ قابل پرداخت</span><strong>{{ money(order.net_cost) }}</strong></div><div><span>پرداخت‌شده قطعی</span><strong>{{ money(order.paid_amount) }}</strong></div><div class="final"><span>باقی‌مانده قطعی</span><strong>{{ money(order.remaining_amount) }}</strong></div></article></section>
+        <form v-if="canSettle" class="settlement screen-only" @submit.prevent="settle">
+          <h4>ثبت دریافت مبلغ باقی‌مانده: {{ money(order.remaining_amount) }}</h4>
+          <label>روش پرداخت<select v-model="settlementMethod" :disabled="settling"><option value="pos">پوز</option><option value="cash">نقدی</option><option value="card_to_card">کارت‌به‌کارت</option><option v-if="order.customer_phone" value="wallet">کیف پول مشتری</option></select></label>
+          <label v-if="settlementMethod !== 'wallet'" class="settlement-confirm"><input v-model="settlementConfirmed" type="checkbox" :disabled="settling"> دریافت کامل وجه به روش انتخاب‌شده را تأیید می‌کنم.</label>
+          <label v-if="settlementMethod === 'pos' || settlementMethod === 'card_to_card'">شماره رسید (اختیاری)<input v-model.trim="settlementReference" maxlength="128" :disabled="settling"></label>
+          <p v-if="settlementError" role="alert">{{ settlementError }}</p>
+          <button class="primary" type="submit" :disabled="settling || (settlementMethod !== 'wallet' && !settlementConfirmed)">{{ settling ? 'در حال ثبت…' : 'ثبت دریافت' }}</button>
+        </form>
         <p v-if="order.note" class="note"><strong>یادداشت:</strong> {{ order.note }}</p>
       </template>
     </div>
@@ -22,10 +30,15 @@ import BaseModal from '@/components/modals/BaseModal.vue'
 import OrderApi from '@/api/order.api.js'
 import { getApiErrorMessage } from '@/api/error'
 import { useCostToast } from '@/composables/useCostToast'
+import { formatPaymentAmount } from '@/utils/paymentAllocation'
 
 const props = defineProps({ orderId: { type: String, default: null }, modelValue: Boolean })
 const emit = defineEmits(['update:modelValue', 'close', 'status-updated'])
 const visible = ref(props.modelValue), order = ref(null), loading = ref(false), error = ref(''), nextStatus = ref(''), statusUpdating = ref(false), statusError = ref('')
+const settlementMethod = ref('pos'), settlementConfirmed = ref(false), settlementReference = ref(''), settling = ref(false), settlementError = ref('')
+const newSettlementKey = () => globalThis.crypto?.randomUUID?.() || `settlement-${Date.now()}-${Math.random().toString(16).slice(2)}`
+const settlementKey = ref(newSettlementKey())
+const canSettle = computed(() => order.value && ['in_store', 'phone'].includes(order.value.order_type) && !['cancel', 'deliver'].includes(order.value.status) && Number(order.value.remaining_amount) > 0 && order.value.payments.length === 0)
 const statuses = { pending: 'در انتظار تأیید', prep: 'در حال آماده‌سازی', send: 'در حال ارسال', deliver: 'تحویل‌شده', cancel: 'لغوشده' }
 const transitions = { pending: ['prep', 'cancel'], prep: ['send', 'cancel'], send: ['deliver', 'cancel'], deliver: [], cancel: [] }
 const availableStatuses = computed(() => {
@@ -38,11 +51,25 @@ const availableStatuses = computed(() => {
   return next.map(value => ({ value, label: pickup && value === 'deliver' ? 'تحویل داده شد' : statuses[value] }))
 })
 const number = value => Number(value || 0).toLocaleString('fa-IR')
-const money = value => `${number(value)} تومان`
+const money = value => `${formatPaymentAmount(value)} تومان`
 const formatDate = value => value ? new Intl.DateTimeFormat('fa-IR-u-ca-persian', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Tehran' }).format(new Date(value)) : '—'
 const errorText = cause => getApiErrorMessage(cause)
 async function load() { if (!props.orderId) return; loading.value = true; error.value = ''; statusError.value = ''; try { order.value = await OrderApi.getOrder(props.orderId); nextStatus.value = order.value.status } catch (cause) { error.value = errorText(cause) } finally { loading.value = false } }
 async function updateStatus() { if (!order.value || nextStatus.value === order.value.status || statusUpdating.value) return; statusUpdating.value = true; statusError.value = ''; try { order.value = await OrderApi.updateOrderStatus(order.value.id, { status: nextStatus.value }); nextStatus.value = order.value.status; emit('status-updated', order.value); useCostToast().success('وضعیت سفارش با موفقیت به‌روزرسانی شد.') } catch (cause) { nextStatus.value = order.value.status; statusError.value = errorText(cause) } finally { statusUpdating.value = false } }
+async function settle() {
+  if (!canSettle.value || settling.value || (settlementMethod.value !== 'wallet' && !settlementConfirmed.value)) return
+  settling.value = true; settlementError.value = ''
+  try {
+    order.value = await OrderApi.settleOrder(order.value.id, {
+      method: settlementMethod.value, expected_remaining: Number(order.value.remaining_amount),
+      confirmed: settlementMethod.value !== 'wallet' && settlementConfirmed.value,
+      reference: settlementReference.value, idempotency_key: settlementKey.value,
+    })
+    emit('status-updated', order.value)
+    useCostToast().success('پرداخت با موفقیت ثبت شد.')
+  } catch (cause) { settlementError.value = errorText(cause) } finally { settling.value = false }
+}
+watch([settlementMethod, settlementReference], () => { settlementConfirmed.value = false; settlementKey.value = newSettlementKey() })
 function close() { visible.value = false; emit('update:modelValue', false); emit('close') }
 function printInvoice() { window.print() }
 watch(() => props.modelValue, value => { visible.value = value; if (value) load() }, { immediate: true })
@@ -50,5 +77,6 @@ watch(() => props.orderId, () => { if (visible.value) load() })
 </script>
 
 <style scoped>
+.settlement{display:grid;gap:10px;padding:14px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface-subtle)}.settlement h4,.settlement p{margin:0}.settlement p{color:var(--color-danger)}.settlement label{display:grid;gap:5px;font-size:.85rem}.settlement select,.settlement input:not([type=checkbox]){min-height:38px;padding:6px;border:1px solid var(--border-strong);border-radius:7px;background:var(--surface);color:var(--text)}.settlement .settlement-confirm{display:flex;align-items:center;gap:7px}.settlement button{justify-self:start}.settlement button:disabled{opacity:.5;cursor:not-allowed}
 .invoice-print{display:grid;gap:1rem;color:var(--text)}.invoice-head{display:flex;justify-content:space-between;gap:1rem;padding-bottom:1rem;border-bottom:2px solid var(--primary)}.invoice-head h1{margin:0;font-size:1.35rem;color:var(--primary)}.invoice-head span,.info-grid span{display:block;color:var(--muted);font-size:.85rem;margin-top:.25rem}.invoice-head>div:last-child{text-align:left}.state{min-height:260px;display:grid;place-content:center;justify-items:center;gap:.75rem;color:var(--muted)}.state i{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite}.state.error strong,.state.error span{color:var(--danger)}.state button,.primary,.secondary{border:0;border-radius:8px;padding:.6rem .9rem;font:inherit;cursor:pointer}.state button,.primary{background:var(--primary);color:#fff}.secondary{background:var(--surface-subtle);color:var(--text);border:1px solid var(--border)}.info-grid,.bottom-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.75rem}.info-grid article,.bottom-grid article{padding:.85rem;background:var(--surface-subtle);border:1px solid var(--border);border-radius:10px}.info-grid h4,.items h4,.bottom-grid h4{margin:0 0 .6rem;font-size:.9rem}.info-grid a{display:block;margin-top:.4rem;color:var(--primary);direction:ltr;text-align:right}.info-grid select{width:100%;min-height:38px;border:1px solid var(--border-strong);border-radius:7px;background:var(--surface);color:var(--text);padding:.4rem}.info-grid small{display:block;margin-top:.4rem;color:var(--danger)}.items{border:1px solid var(--border);border-radius:10px;overflow:auto}.items h4{padding:.85rem;margin:0;background:var(--surface-subtle)}table{width:100%;min-width:480px;border-collapse:collapse}th,td{padding:.7rem .85rem;text-align:right;border-top:1px solid var(--border)}th{font-size:.8rem;color:var(--muted)}.bottom-grid{grid-template-columns:1fr 1fr}.payment{display:grid;grid-template-columns:1fr auto;gap:.35rem;padding:.5rem 0;border-bottom:1px solid var(--border);font-size:.85rem}.payment small{grid-column:1/-1;color:var(--muted)}.muted{color:var(--muted);font-size:.85rem}.totals>div{display:flex;justify-content:space-between;gap:1rem;padding:.35rem 0;font-size:.88rem}.totals .final{margin-top:.3rem;padding-top:.65rem;border-top:1px solid var(--border);font-size:1rem}.note{padding:.75rem;background:var(--surface-subtle);border-radius:8px;margin:0;font-size:.86rem}.modal-actions{display:flex;gap:.65rem}@keyframes spin{to{transform:rotate(360deg)}}@media(max-width:650px){.invoice-head,.bottom-grid{grid-template-columns:1fr}.invoice-head{display:grid}.invoice-head>div:last-child{text-align:right}.info-grid{grid-template-columns:1fr}.bottom-grid{display:grid}}@media print{:global(body *){visibility:hidden!important}:global(.modal-overlay),:global(.modal-overlay *){visibility:visible!important}:global(.modal-overlay){position:absolute!important;inset:0!important;display:block!important;background:#fff!important;padding:0!important}:global(.modal-container){width:100%!important;max-height:none!important;box-shadow:none!important;border:0!important;border-radius:0!important}:global(.modal-header),:global(.modal-footer),.screen-only{display:none!important}.invoice-print{padding:0!important;color:#000!important}.invoice-head{border-color:#000!important}.invoice-head h1{color:#000!important}.info-grid article,.bottom-grid article,.note,.items h4{background:#fff!important;border-color:#777!important}.info-grid span,.invoice-head span,.payment small,.muted{color:#333!important}table{min-width:0!important}th,td{border-color:#777!important}.items{overflow:visible!important;border-color:#777!important}}
 </style>

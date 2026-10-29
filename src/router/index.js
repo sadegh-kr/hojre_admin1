@@ -25,6 +25,7 @@ const ProductRecipe = () => import("@/view/cost/ProductRecipe.vue");
 const ExpenseCategories = () => import("@/view/cost/ExpenseCategories.vue");
 const ProductionCosts = () => import("@/view/cost/ProductionCosts.vue");
 const CostReports = () => import("@/view/cost/CostReports.vue");
+const FinancialStatistics = () => import("@/view/finance/FinancialStatistics.vue");
 const InventoryOverview = () => import("@/view/inventory/InventoryOverview.vue");
 const LoyaltyOverview = () => import("@/view/loyalty/LoyaltyOverview.vue");
 const LoyaltyMembers = () => import("@/view/loyalty/LoyaltyMembers.vue");
@@ -55,6 +56,7 @@ const routes = [
             { path: "restaurant/order-list/:restaurantId", redirect: to => ({ path: '/dashboard/orders', query: { branch: to.params.restaurantId } }) },
             { path: "user-list", component: UserList, props: true },
             { path: "item-list", component: ItemList, props: true },
+            { path: "finance/statistics", component: FinancialStatistics, meta: { requiresOwner: true } },
             {
                 path: "cost-control",
                 component: ProductManagement,

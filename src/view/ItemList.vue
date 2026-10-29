@@ -32,6 +32,7 @@ const categorySearchQuery = ref('')
 const showCategoryFilter = ref(false)
 const categoryError = ref('')
 const submittingOrder = ref(false)
+const walletDebtConfirmation = ref(null)
 const toast = useCostToast()
 const showCreateProduct = ref(false)
 const creatingProduct = ref(false)
@@ -282,7 +283,7 @@ const clearInvoice = () => {
 }
 
 // ========== ثبت سفارش از صفحه اقلام ==========
-const submitOrder = async checkout => {
+const submitOrder = async (checkout, debtConfirmationToken = '') => {
   if (!invoiceItems.value.length || submittingOrder.value) return
   if (!posReady.value) {
     toast.error(posContextError.value || 'شعبهٔ طالقانی هنوز برای ثبت سفارش آماده نیست.')
@@ -298,8 +299,13 @@ const submitOrder = async checkout => {
       order_type: orderType.value,
       delivery: orderType.value === 'phone' ? selectedDelivery.value : 'dine-in',
       expected_total: checkout.expected_total,
+      pay_later: checkout.pay_later,
       payments: checkout.payments,
-      idempotency_key: checkoutIdempotencyKey.value
+      idempotency_key: checkoutIdempotencyKey.value,
+      ...(debtConfirmationToken ? {
+        allow_wallet_debt: true,
+        wallet_debt_confirmation_token: debtConfirmationToken
+      } : {})
     })
     if (!response.data?.success) {
       const requestError = new Error(response.data?.error || response.data?.message || 'سفارش ثبت نشد.')
@@ -307,13 +313,19 @@ const submitOrder = async checkout => {
       throw requestError
     }
     const createdOrder = response.data.data
+    walletDebtConfirmation.value = null
     invoiceItems.value = []
     selectedCustomer.value = null
     checkoutIdempotencyKey.value = createIdempotencyKey()
-    toast.success('سفارش با موفقیت ثبت شد.')
+    toast.success(checkout.pay_later ? 'سفارش ثبت شد و در انتظار پرداخت است.' : 'سفارش با موفقیت ثبت شد.')
     await router.push({ path: '/dashboard/orders' })
   } catch (cause) {
-    const authoritativeTotal = cause.response?.data?.authoritative_total
+    const failure = cause.response?.data || cause.order || {}
+    if (failure.code === 'wallet_debt_confirmation_required' && failure.debt_preview) {
+      walletDebtConfirmation.value = { checkout, preview: failure.debt_preview }
+      return
+    }
+    const authoritativeTotal = failure.authoritative_total
     if (authoritativeTotal !== undefined) {
       toast.error(`قیمت فاکتور تغییر کرده است. مبلغ فعلی سرور ${Number(authoritativeTotal).toLocaleString('fa-IR')} تومان است؛ اقلام را بازبینی کنید.`)
     } else {
@@ -323,6 +335,19 @@ const submitOrder = async checkout => {
     submittingOrder.value = false
   }
 }
+
+const cancelWalletDebt = () => {
+  if (!submittingOrder.value) walletDebtConfirmation.value = null
+}
+
+const confirmWalletDebt = async () => {
+  const confirmation = walletDebtConfirmation.value
+  if (!confirmation || submittingOrder.value) return
+  walletDebtConfirmation.value = null
+  await submitOrder(confirmation.checkout, confirmation.preview.confirmation_token)
+}
+
+const money = value => Number(value || 0).toLocaleString('fa-IR')
 
 // ========== انتخاب دسته‌بندی ==========
 const selectCategory = (categoryId = '', type = 'category', label = '') => {
@@ -742,6 +767,25 @@ onBeforeUnmount(() => {
         @save="saveCategory"
         @delete="deleteCategory"
     />
+    <div v-if="walletDebtConfirmation" class="debt-confirmation-backdrop" role="presentation">
+      <section class="debt-confirmation" role="alertdialog" aria-modal="true" aria-labelledby="debt-confirmation-title">
+        <div class="debt-confirmation-icon" aria-hidden="true">⚠️</div>
+        <h2 id="debt-confirmation-title">تأیید فروش اعتباری و ایجاد بدهی</h2>
+        <p>موجودی کیف پول مشتری برای این برداشت کافی نیست. با تأیید شما، سفارش ثبت و ماندهٔ کیف پول مشتری منفی می‌شود؛ این مبلغ «وجه دریافت‌شده» نیست و به‌عنوان بدهی مشتری در دفتر کیف پول ثبت می‌شود.</p>
+        <dl>
+          <div><dt>موجودی فعلی</dt><dd>{{ money(walletDebtConfirmation.preview.current_balance) }} تومان</dd></div>
+          <div><dt>برداشت این سفارش</dt><dd>{{ money(walletDebtConfirmation.preview.wallet_amount) }} تومان</dd></div>
+          <div class="debt-total"><dt>بدهی پس از ثبت</dt><dd>{{ money(walletDebtConfirmation.preview.debt_amount) }} تومان</dd></div>
+          <div><dt>ماندهٔ جدید کیف پول</dt><dd>{{ money(walletDebtConfirmation.preview.projected_balance) }} تومان</dd></div>
+        </dl>
+        <div class="debt-confirmation-actions">
+          <button type="button" class="debt-cancel" :disabled="submittingOrder" @click="cancelWalletDebt">انصراف؛ هیچ سفارشی ثبت نشود</button>
+          <button type="button" class="debt-approve" :disabled="submittingOrder" @click="confirmWalletDebt">
+            {{ submittingOrder ? 'در حال ثبت…' : 'تأیید نهایی بدهی و ثبت سفارش' }}
+          </button>
+        </div>
+      </section>
+    </div>
   </div>
 </template>
 
@@ -790,6 +834,9 @@ onBeforeUnmount(() => {
 .pos-context-state{margin:8px 0 0;color:var(--muted);font-size:12px}.pos-context-state--error{color:var(--color-danger)}
 .previous-orders{margin:8px 0 0;color:var(--muted);font-size:12px}
 .previous-order-list{display:flex;gap:6px;max-width:100%;overflow:auto;padding-top:8px}
+.debt-confirmation-backdrop{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:20px;background:rgba(15,23,42,.62);backdrop-filter:blur(3px)}
+.debt-confirmation{width:min(100%,520px);padding:24px;border:2px solid var(--color-danger);border-radius:18px;background:var(--surface-elevated,var(--surface));box-shadow:0 24px 70px rgba(0,0,0,.28);text-align:center}
+.debt-confirmation-icon{font-size:38px}.debt-confirmation h2{margin:8px 0;color:var(--color-danger);font-size:20px}.debt-confirmation>p{margin:0;color:var(--text);font-size:13px;line-height:2;text-align:right}.debt-confirmation dl{display:grid;gap:7px;margin:16px 0;padding:12px;border-radius:12px;background:var(--surface-subtle)}.debt-confirmation dl div{display:flex;justify-content:space-between;gap:12px}.debt-confirmation dt,.debt-confirmation dd{margin:0;font-size:13px}.debt-confirmation dd{font-weight:800}.debt-confirmation .debt-total{padding-top:7px;border-top:1px solid var(--color-danger);color:var(--color-danger);font-size:15px}.debt-confirmation-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.debt-confirmation-actions button{min-height:44px;border-radius:10px;font:inherit;font-size:12px;font-weight:800;cursor:pointer}.debt-confirmation-actions button:disabled{opacity:.55;cursor:not-allowed}.debt-cancel{border:1px solid var(--border-strong);background:var(--surface);color:var(--text)}.debt-approve{border:0;background:var(--color-danger);color:#fff}
 
 /* ===== هدر محصولات ===== */
 .products-header {

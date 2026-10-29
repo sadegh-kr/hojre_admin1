@@ -14,6 +14,7 @@ const recentLoading = ref(false)
 const error = ref('')
 const showRegistration = ref(false)
 const registering = ref(false)
+const phoneError = ref('')
 const registration = ref({ phone_number: '', name: '' })
 const restaurantStore = useRestaurantStore()
 let timer
@@ -91,32 +92,40 @@ onBeforeUnmount(() => clearTimeout(timer))
 function openRegistration() {
   registration.value = { phone_number: query.value, name: '' }
   error.value = ''
+  phoneError.value = ''
   showRegistration.value = true
 }
 
-function closeRegistration() {
+function closeRegistration(force = false) {
+  if (registering.value && force !== true) return
   showRegistration.value = false
   error.value = ''
+  phoneError.value = ''
   registration.value = { phone_number: '', name: '' }
 }
 
 async function register() {
+  if (registering.value) return
   registering.value = true
   error.value = ''
+  phoneError.value = ''
   try {
     const data = await loyaltyApi.createCustomer({
       ...registration.value,
       registration_source: props.registrationSource,
     })
     recentCustomers.value = uniqueCustomers([data.customer, ...recentCustomers.value]).slice(0, 3)
-    closeRegistration()
+    closeRegistration(true)
     selectCustomer(data.customer)
   } catch (cause) {
-    error.value = getApiErrorMessage(cause)
+    const messages = cause.response?.data?.phone_number || cause.response?.data?.errors?.phone_number
+    if (messages) phoneError.value = Array.isArray(messages) ? messages[0] : String(messages)
+    else error.value = getApiErrorMessage(cause)
   } finally {
     registering.value = false
   }
 }
+watch(() => registration.value.phone_number, () => { phoneError.value = '' })
 </script>
 
 <template>
@@ -168,7 +177,7 @@ async function register() {
         <form class="quick-register" @submit.prevent="register">
           <div class="quick-register__header"><h2 id="quick-registration-title">ثبت سریع مشتری</h2><button type="button" aria-label="بستن" @click="closeRegistration">×</button></div>
           <p>پس از ثبت، مشتری به همین فاکتور انتخاب می‌شود.</p>
-          <label>شمارهٔ موبایل<input v-model="registration.phone_number" required inputmode="tel" autocomplete="tel" placeholder="09123456789"></label>
+          <label>شمارهٔ موبایل<input v-model="registration.phone_number" required inputmode="tel" autocomplete="tel" placeholder="09123456789" :aria-invalid="Boolean(phoneError)" :aria-describedby="phoneError ? 'registration-phone-error' : undefined"><span v-if="phoneError" id="registration-phone-error" class="form-error" role="alert">{{ phoneError }}</span></label>
           <label>نام و نام خانوادگی <span>اختیاری</span><input v-model="registration.name" autocomplete="name" placeholder="نام مشتری"></label>
           <p v-if="error" class="form-error" role="alert">{{ error }}</p>
           <div class="quick-register__actions"><button type="button" class="admin-button admin-button--ghost" @click="closeRegistration">انصراف</button><button class="admin-button admin-button--primary" :disabled="registering">{{ registering ? 'در حال ثبت…' : 'ثبت و انتخاب' }}</button></div>

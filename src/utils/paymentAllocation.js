@@ -5,20 +5,46 @@ export const PAYMENT_METHODS = [
   { code: 'wallet', label: 'کیف پول', hint: 'برداشت قطعی از کیف پول مشتری' }
 ]
 
-export function toMoneyNumber(value) {
-  if (typeof value === 'number') return Number.isFinite(value) ? Math.trunc(value) : 0
+export function parsePaymentAmount(value) {
+  if (typeof value === 'number') return Number.isSafeInteger(value) ? value : NaN
   const normalized = String(value ?? '')
     .replace(/[۰-۹]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)))
-    .replace(/[^\d-]/g, '')
-  return Number.parseInt(normalized, 10) || 0
+    .replace(/[٠-٩]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+    .replace(/تومان\s*$/, '')
+    .replace(/[\s,٬]/g, '')
+  if (!normalized) return null
+  if (!/^-?\d+$/.test(normalized)) return NaN
+  const amount = Number(normalized)
+  return Number.isSafeInteger(amount) ? amount : NaN
+}
+
+export function toMoneyNumber(value) {
+  return parsePaymentAmount(value) ?? 0
+}
+
+export function formatPaymentAmount(value) {
+  const amount = parsePaymentAmount(value)
+  if (amount === null) return ''
+  if (!Number.isFinite(amount)) return String(value ?? '')
+  return String(amount).replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
+export function groupedCaretPosition(text, oldPosition, formatted) {
+  const digitCount = (text.slice(0, oldPosition).match(/[0-9۰-۹٠-٩]/g) || []).length
+  if (!digitCount) return formatted.startsWith('-') && text.slice(0, oldPosition).includes('-') ? 1 : 0
+  let seen = 0
+  for (let i = 0; i < formatted.length; i++) {
+    if (/[0-9]/.test(formatted[i]) && ++seen === digitCount) return i + 1
+  }
+  return formatted.length
 }
 
 export function createPaymentState(total = 0) {
   const state = Object.fromEntries(PAYMENT_METHODS.map(method => [
     method.code,
-    { selected: method.code === 'cash', amount: 0, confirmed: false, reference: '', used: method.code === 'cash' }
+    { selected: method.code === 'pos', amount: 0, confirmed: false, reference: '', used: method.code === 'pos' }
   ]))
-  state.cash.amount = toMoneyNumber(total)
+  state.pos.amount = toMoneyNumber(total)
   return state
 }
 
@@ -38,6 +64,7 @@ export function applyAutomaticRemainder(state, total, remainderMethod) {
   const otherTotal = getSelectedMethods(state).reduce((sum, method) => (
     method.code === remainderMethod ? sum : sum + toMoneyNumber(state[method.code].amount)
   ), 0)
+  if (!Number.isFinite(otherTotal)) return
   state[remainderMethod].amount = Math.max(toMoneyNumber(total) - otherTotal, 0)
 }
 
@@ -47,6 +74,8 @@ export function togglePaymentMethod(state, code, selected, total, remainderMetho
     return { remainderMethod, automatic: true, changed: false }
   }
   const payment = state[code]
+  payment.confirmed = false
+  payment.reference = ''
   payment.selected = selected
   if (selected) {
     if (!payment.used) payment.amount = 0
@@ -65,7 +94,8 @@ export function togglePaymentMethod(state, code, selected, total, remainderMetho
 }
 
 export function updatePaymentAmount(state, code, value, total, remainderMethod, automatic) {
-  state[code].amount = toMoneyNumber(value)
+  const parsed = parsePaymentAmount(value)
+  state[code].amount = parsed === null ? '' : Number.isNaN(parsed) ? String(value) : parsed
   const nextAutomatic = code === remainderMethod ? false : automatic
   if (nextAutomatic) applyAutomaticRemainder(state, total, remainderMethod)
   return nextAutomatic

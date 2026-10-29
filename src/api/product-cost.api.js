@@ -25,12 +25,20 @@ class ProductCostAPI extends BaseAPI {
     form.append('image', image)
     return this.request(this.post(`${this.basePath}products/`, form), true)
   }
-  updateProduct(id, data) { return this.pricingWrite(this.patch(`${this.basePath}products/${id}/`, data)) }
+  updateProduct(id, data, image = null) {
+    if (!image) return this.pricingWrite(this.patch(`${this.basePath}products/${id}/`, data))
+    const form = new FormData()
+    Object.entries(data).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) form.append(key, value)
+    })
+    form.append('image', image)
+    return this.pricingWrite(this.patch(`${this.basePath}products/${id}/`, form))
+  }
   deleteProduct(id) { return this.request(this.delete(`${this.basePath}products/${id}/`), true) }
   recipes(id) { return this.request(this.get(`${this.basePath}products/${id}/recipes/`)) }
   saveRecipe(id, data) { return this.pricingWrite(this.post(`${this.basePath}products/${id}/recipes/`, data)) }
   removeRecipe(id, lineId) { return this.pricingWrite(this.delete(`${this.basePath}products/${id}/recipes/${lineId}/`)) }
-  uploadImage(id, file) { const form = new FormData(); form.append('image', file); return this.request(this.post(`${this.basePath}products/${id}/image/`, form, { headers: { 'Content-Type': 'multipart/form-data' } }), true) }
+  uploadImage(id, file) { const form = new FormData(); form.append('image', file); return this.request(this.post(`${this.basePath}products/${id}/image/`, form), true) }
   removeImage(id) { return this.request(this.delete(`${this.basePath}products/${id}/image/`), true) }
   meta() { return this.request(this.get(`${this.basePath}products/meta/`)) }
   dashboard(params = {}) { return this.request(this.get(`${this.basePath}cost-dashboard/`, { params })) }
